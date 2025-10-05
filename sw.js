@@ -2,37 +2,10 @@
 const CACHE_NAME = 'inferno-cache-v1';
 
 const APP_SHELL_URLS = [
-    './',
-    './index.html',
-    './index.tsx',
-    './App.tsx',
-    './types.ts',
-    './constants.ts',
-    './vite.svg',
-    './metadata.json',
-    './services/geminiService.ts',
-    './services/matchService.ts',
-    './helpers/geolocation.ts',
-    './helpers/imageProcessing.ts',
-    './components/AgeGate.tsx',
-    './components/ProfileCreator.tsx',
-    './components/PersonaCustomizer.tsx',
-    './components/SwipeScreen.tsx',
-    './components/ProfileCard.tsx',
-    './components/ChatScreen.tsx',
-    './components/VideoCallScreen.tsx',
-    './components/MatchesScreen.tsx',
-    './components/UserProfileScreen.tsx',
-    './components/ItsAMatchScreen.tsx',
-    './components/BottomNav.tsx',
-    './components/LikesYouScreen.tsx',
-    './components/FilterScreen.tsx',
-    './components/ProductPlanScreen.tsx',
-    './components/VerificationScreen.tsx',
-    './components/SafetyCenterScreen.tsx',
-    './components/SpotlightScreen.tsx',
-    './components/Icons.tsx',
-    './components/AudioMessageBubble.tsx'
+    '/',
+    '/index.html',
+    '/manifest.json',
+    '/vite.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -54,39 +27,48 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
+    const { request } = event;
 
-        return fetch(event.request).then(
-          (response) => {
-            if (!response || response.status !== 200) {
-              return response;
-            }
-            
-            const url = new URL(event.request.url);
-            // Don't cache dynamic image services
-            if (url.hostname.includes('picsum.photos') || url.hostname.includes('pravatar.cc')) {
-                return response;
-            }
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    if (response.status === 404) {
+                        return caches.match('/index.html');
+                    }
+                    return response;
+                })
+                .catch(() => caches.match('/index.html'))
+        );
+        return;
+    }
 
-            // Cache successful responses to our cache.
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
+    event.respondWith(
+        caches.match(request)
+            .then((cached) => {
+                if (cached) {
+                    return cached;
+                }
 
-            return response;
-          }
-        ).catch(() => {
-            // Intentionally empty. Let the request fail if network fails and not in cache.
-        });
-      })
-  );
+                return fetch(request).then((networkResponse) => {
+                    if (!networkResponse || networkResponse.status !== 200) {
+                        return networkResponse;
+                    }
+
+                    const url = new URL(request.url);
+                    if (url.origin !== self.location.origin) {
+                        return networkResponse;
+                    }
+
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseToCache);
+                    });
+
+                    return networkResponse;
+                });
+            })
+    );
 });
 
 self.addEventListener('activate', (event) => {
