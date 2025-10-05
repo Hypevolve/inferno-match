@@ -4,7 +4,11 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { UserProfile, ChatMessage } from '../types.ts';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const apiKey = process.env.API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+if (!apiKey) {
+    console.warn("Gemini API key is not configured. Falling back to mock responses.");
+}
 const model = 'gemini-2.5-flash';
 
 const dataUriToPart = (dataUri: string): Part | null => {
@@ -53,6 +57,9 @@ const chatMessagesToContent = (messages: ChatMessage[]): Content[] => {
 
 // FIX: Implemented and exported getGeminiInitialMessage
 export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promise<string> => {
+    if (!ai) {
+        return "Hey there ;)";
+    }
     try {
         const systemInstruction = generatePersonaSystemInstruction(matchProfile);
         const response = await ai.models.generateContent({
@@ -71,6 +78,10 @@ export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promis
 
 // FIX: Implemented and exported getGeminiChatResponse
 export const getGeminiChatResponse = async (messages: ChatMessage[], matchProfile: UserProfile): Promise<string> => {
+    if (!ai) {
+        const latest = messages[messages.length - 1];
+        return latest?.text ? `Tell me more about "${latest.text}"...` : "I'm not sure what to say to that...";
+    }
     try {
         const systemInstruction = generatePersonaSystemInstruction(matchProfile);
         const contents = chatMessagesToContent(messages);
@@ -95,6 +106,9 @@ export const getGeminiChatResponse = async (messages: ChatMessage[], matchProfil
 
 // FIX: Implemented and exported getGeminiIcebreaker
 export const getGeminiIcebreaker = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
+    if (!ai) {
+        return `So, ${matchProfile.name}, should we skip the small talk or savor it?`;
+    }
     try {
         const prompt = `Based on our profiles, suggest a flirty and interesting icebreaker I (the user) can send to you.
         My profile name: ${userProfile.name}. My bio: "${userProfile.bio}". My interests: ${userProfile.kinks.map(k => k.name).join(', ')}.
@@ -122,6 +136,9 @@ export const getGeminiIcebreaker = async (userProfile: UserProfile, matchProfile
 
 // FIX: Implemented and exported getGeminiFantasyResponse
 export const getGeminiFantasyResponse = async (messages: ChatMessage[], scenario: string, userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
+    if (!ai) {
+        return `Let's imagine ${scenario.toLowerCase()}... you start and I'll follow.`;
+    }
     try {
         const systemInstruction = getFantasySystemInstruction(scenario, userProfile.name, matchProfile.name);
         const history = chatMessagesToContent(messages.filter(m => m.type !== 'system' && m.type !== 'game'));
@@ -147,6 +164,9 @@ export const getGeminiFantasyResponse = async (messages: ChatMessage[], scenario
 
 // FIX: Implemented and exported getSafetyArticleContent
 export const getSafetyArticleContent = async (title: string): Promise<string> => {
+    if (!ai) {
+        return `${title}\n\n• Prioritize consent and communication.\n• Take things at a pace that feels good for everyone involved.\n• Check back soon for more detailed guidance.`;
+    }
     try {
         const systemInstruction = "You are a helpful assistant for Inferno, an NSFW-friendly dating app. Your role is to provide clear, helpful, and non-judgmental information about BDSM and kink safety. Your tone should be informative, reassuring, and sex-positive. Use clear headings and bullet points (using simple text and newlines) to make the content easy to read.";
         const prompt = `Write a short article for the app's Safety Center on the topic: "${title}". Cover the key points in a concise and easy-to-understand way. Structure it with a main title, and then paragraphs or bulleted lists.`;
