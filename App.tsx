@@ -13,6 +13,8 @@ import BottomNav from './components/BottomNav';
 import LikesYouScreen from './components/LikesYouScreen';
 import FilterScreen from './components/FilterScreen';
 import ProductPlanScreen from './components/ProductPlanScreen';
+import VerificationScreen from './components/VerificationScreen';
+import SafetyCenterScreen from './components/SafetyCenterScreen';
 import { generateMatches } from './services/matchService';
 import { getGeminiCompatibilityScore } from './services/geminiService';
 
@@ -215,10 +217,15 @@ const App: React.FC = () => {
     setCurrentScreen(Screen.PROFILE_CREATOR);
   };
   
-  const handleVerifyProfile = () => {
+  const handleStartVerification = () => {
+      setCurrentScreen(Screen.VERIFICATION);
+  };
+
+  const handleVerificationComplete = () => {
       if(userProfile) {
         setUserProfile({...userProfile, isVerified: true});
       }
+      setCurrentScreen(Screen.PROFILE);
   };
 
   const handleSaveFilters = (newSettings: FilterSettings) => {
@@ -254,7 +261,8 @@ const App: React.FC = () => {
         return userProfile && <UserProfileScreen 
             userProfile={userProfile} 
             onEditProfile={handleEditProfile}
-            onVerifyProfile={handleVerifyProfile}
+            onVerifyProfile={handleStartVerification}
+            onOpenSafetyCenter={() => setCurrentScreen(Screen.SAFETY_CENTER)}
             isIncognito={isIncognito}
             onToggleIncognito={() => setIsIncognito(p => !p)}
             onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)}
@@ -282,6 +290,10 @@ const App: React.FC = () => {
         />
       case Screen.PRODUCT_PLAN:
         return <ProductPlanScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />
+      case Screen.VERIFICATION:
+        return <VerificationScreen onComplete={handleVerificationComplete} onBack={() => setCurrentScreen(Screen.PROFILE)} />
+      case Screen.SAFETY_CENTER:
+        return <SafetyCenterScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />
       default:
         return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
     }

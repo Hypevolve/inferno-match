@@ -58,7 +58,7 @@ const AudioMessageBubble: React.FC<AudioMessageBubbleProps> = ({ message }) => {
         <div className="flex items-center gap-2 p-2 rounded-2xl w-60" style={{
             background: message.sender === 'user' ? 'linear-gradient(to right, #FF3B91, #E4007C)' : '#282531'
         }}>
-            <audio ref={audioRef} src={message.mediaUrl} preload="metadata"></audio>
+            <audio ref={audioRef} src={message.audioUrl} preload="metadata"></audio>
             <button onClick={togglePlay} className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white/20 rounded-full text-white">
                 {isPlaying ? <PauseIcon className="h-5 w-5" /> : <PlayIcon className="h-5 w-5" />}
             </button>

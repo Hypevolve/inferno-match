@@ -71,7 +71,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
   }, [userInput, isLoading, messages, matchProfile, isFantasyMode, fantasyScenario, userProfile]);
 
   const handleSendAudio = async (audioUrl: string, duration: number) => {
-    const audioMessage: ChatMessage = { id: `user-audio-${Date.now()}`, sender: 'user', timestamp: Date.now(), status: 'sent', type: 'audio', mediaUrl: audioUrl, duration: Math.round(duration), text: '[User sent a voice message]' };
+    const audioMessage: ChatMessage = { id: `user-audio-${Date.now()}`, sender: 'user', timestamp: Date.now(), status: 'sent', type: 'audio', audioUrl: audioUrl, duration: Math.round(duration), text: '[User sent a voice message]' };
     const newMessages = [...messages, audioMessage];
     setMessages(newMessages);
     setIsLoading(true);
@@ -184,7 +184,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
             <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
               <div onDoubleClick={() => handleReaction(msg.id, '🔥')} className={`relative max-w-xs md:max-w-md lg:max-w-lg shadow-md rounded-2xl ${msg.sender === 'user' ? 'bg-brand-gradient text-white rounded-br-none' : 'bg-brand-surface-light text-brand-text-light rounded-bl-none'}`}>
                  <div className="px-4 py-2">
-                    {msg.type === 'audio' && msg.mediaUrl ? <AudioMessageBubble message={msg} />
+                    {msg.type === 'audio' && msg.audioUrl ? <AudioMessageBubble message={msg} />
                      : msg.type === 'gif' ? <img src={msg.gifUrl} alt="gif" className="rounded-lg max-h-40" />
                      : <p className="text-sm break-words pr-5">{msg.text}</p>}
                  </div>

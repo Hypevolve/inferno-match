@@ -44,10 +44,14 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   timestamp: number;
   status?: 'sent' | 'read';
-  type: 'text' | 'audio' | 'gif';
-  mediaUrl?: string; // for audio
-  gifUrl?: string; // for gifs
-  duration?: number; // in seconds for audio
+  type: 'text' | 'audio' | 'gif' | 'photo' | 'video';
+  audioUrl?: string; 
+  gifUrl?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  isDisappearing?: boolean;
+  hasBeenViewed?: boolean;
+  duration?: number; // in seconds for audio/video
   reactions?: { [emoji: string]: string[] }; // e.g. { '🔥': ['user'] }
 }
 
@@ -61,13 +65,15 @@ export enum Screen {
   VIDEO_CALL,
   LIKES_YOU,
   FILTER,
-  PRODUCT_PLAN, // Added
+  PRODUCT_PLAN,
+  VERIFICATION,
+  SAFETY_CENTER,
 }
 
 export interface FilterSettings {
   ageRange: { min: number; max: number };
   lookingFor: string[];
   kinks: string[];
-  roles: string[]; // Added
+  roles: string[];
   verifiedOnly: boolean;
 }

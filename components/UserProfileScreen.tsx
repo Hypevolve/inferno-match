@@ -7,6 +7,7 @@ interface UserProfileScreenProps {
     userProfile: UserProfile;
     onEditProfile: () => void;
     onVerifyProfile: () => void;
+    onOpenSafetyCenter: () => void;
     isIncognito: boolean;
     onToggleIncognito: () => void;
     onGoPremium: () => void;
@@ -18,7 +19,7 @@ const KinkLevelIndicator: React.FC<{ level: KinkLevel }> = ({ level }) => {
 };
 
 
-const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userProfile, onEditProfile, onVerifyProfile, isIncognito, onToggleIncognito, onGoPremium }) => {
+const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userProfile, onEditProfile, onVerifyProfile, onOpenSafetyCenter, isIncognito, onToggleIncognito, onGoPremium }) => {
     return (
         <div className="flex flex-col h-full bg-brand-bg overflow-y-auto p-6 items-center no-scrollbar" style={{ scrollbarWidth: 'none' }}>
             <div className="relative w-40 h-40 mt-8 mb-4">
@@ -62,6 +63,15 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ userProfile, onEd
                     </div>
                     <p className="text-xs text-brand-text-dark mt-2">
                         {isIncognito ? "You are hidden. Only people you like will see your profile." : "Your profile is visible to others. Turn on to browse privately."}
+                    </p>
+                </div>
+
+                <div className="w-full p-4 bg-brand-surface rounded-lg">
+                    <button onClick={onOpenSafetyCenter} className="w-full text-left font-bold text-brand-primary">
+                        Safety Center
+                    </button>
+                    <p className="text-xs text-brand-text-dark mt-1">
+                        Review our safety tips and community guidelines.
                     </p>
                 </div>
 
