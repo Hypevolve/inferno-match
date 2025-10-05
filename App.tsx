@@ -14,6 +14,7 @@ import LikesYouScreen from './components/LikesYouScreen';
 import FilterScreen from './components/FilterScreen';
 import ProductPlanScreen from './components/ProductPlanScreen';
 import { generateMatches } from './services/matchService';
+import { getGeminiCompatibilityScore } from './services/geminiService';
 
 const App: React.FC = () => {
   const [isAgeVerified, setIsAgeVerified] = useState<boolean>(false);
@@ -67,14 +68,35 @@ const App: React.FC = () => {
     );
   }, [filterSettings]);
 
+  const calculateAndSetCompatibilityScores = useCallback((newMatches: UserProfile[]) => {
+    if (!userProfile) return;
+    newMatches.forEach(async (match) => {
+        try {
+            const scoreData = await getGeminiCompatibilityScore(userProfile, match);
+            if (scoreData) {
+                setMatchQueue(prevQueue => 
+                    prevQueue.map(p => p.id === match.id ? { ...p, compatibilityScore: scoreData } : p)
+                );
+            }
+        } catch (error) {
+            console.error(`Failed to calculate score for match ${match.id}`, error);
+        }
+    });
+  }, [userProfile]);
+
   const loadMoreMatches = useCallback(() => {
     setIsQueueLoading(true);
     // Simulate network delay
     setTimeout(() => {
-        setMatchQueue(prev => [...prev, ...generateMatches()]);
+        const newMatches = generateMatches();
+        setMatchQueue(prev => [...prev, ...newMatches]);
         setIsQueueLoading(false);
+         // Start calculating scores in the background
+        if (userProfile) {
+          calculateAndSetCompatibilityScores(newMatches);
+        }
     }, 500);
-  }, []);
+  }, [userProfile, calculateAndSetCompatibilityScores]);
 
   useEffect(() => {
     if (userProfile && matchQueue.length < 5) {

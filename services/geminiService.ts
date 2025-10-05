@@ -27,92 +27,152 @@ Keep your responses contained to the roleplay. Do not break character or mention
 };
 
 const buildHistory = (history: ChatMessage[]): Content[] => {
+    // FIX: Correctly map ChatMessage to Content array for the Gemini API.
     return history.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text || '' }]
+        parts: [{ text: msg.text || '' }],
     }));
 };
 
-// FIX: Completed the function which was previously cut off, causing a return type error.
+// FIX: Implement and export getGeminiCompatibilityScore for App.tsx
+export const getGeminiCompatibilityScore = async (
+  userProfile: UserProfile,
+  matchProfile: UserProfile,
+): Promise<{ score: number; rationale: string } | null> => {
+  try {
+    const prompt = `Analyze the compatibility between two dating profiles based on their bios, kinks, roles, and what they are looking for.
+    
+    My Profile:
+    Name: ${userProfile.name}
+    Bio: ${userProfile.bio}
+    Looking for: ${userProfile.lookingFor.join(', ')}
+    Roles: ${userProfile.roles.join(', ')}
+    Kinks: ${userProfile.kinks.map(k => `${k.name} (${k.level})`).join(', ')}
+
+    Their Profile:
+    Name: ${matchProfile.name}
+    Bio: ${matchProfile.bio}
+    Looking for: ${matchProfile.lookingFor.join(', ')}
+    Roles: ${matchProfile.roles.join(', ')}
+    Kinks: ${matchProfile.kinks.map(k => `${k.name} (${k.level})`).join(', ')}
+
+    Based on this information, provide a compatibility score from 0 to 100 and a brief, one-sentence rationale for the score. The rationale should be creative and slightly suggestive, fitting the NSFW-friendly dating app theme.
+    Your response MUST be in JSON format.`;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    score: { type: Type.NUMBER, description: 'Compatibility score from 0 to 100.' },
+                    rationale: { type: Type.STRING, description: 'A brief, one-sentence rationale for the score.' }
+                },
+                required: ['score', 'rationale']
+            }
+        }
+    });
+    
+    const jsonStr = response.text.trim();
+    const result = JSON.parse(jsonStr);
+
+    if (typeof result.score === 'number' && typeof result.rationale === 'string') {
+        result.score = Math.max(0, Math.min(100, result.score));
+        return result;
+    }
+    console.error("Parsed Gemini response is not in the expected format:", result);
+    return null;
+
+  } catch (error) {
+    console.error("Error getting compatibility score:", error);
+    return null;
+  }
+};
+
+// FIX: Implement and export getGeminiInitialMessage for ChatScreen.tsx
+export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promise<string> => {
+    try {
+        const systemInstruction = generatePersonaSystemInstruction(matchProfile);
+        const prompt = "Start the conversation with an engaging and flirty opening line based on your profile. Be direct but clever.";
+        
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                systemInstruction: systemInstruction,
+            }
+        });
+        
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error getting initial message:", error);
+        return "Hey there ;)"; // Fallback message
+    }
+};
+
+// FIX: Implement and export getGeminiChatResponse for ChatScreen.tsx
 export const getGeminiChatResponse = async (history: ChatMessage[], matchProfile: UserProfile): Promise<string> => {
     try {
         const systemInstruction = generatePersonaSystemInstruction(matchProfile);
         const contents = buildHistory(history);
-
+        
         const response = await ai.models.generateContent({
             model,
-            contents: contents,
+            contents,
             config: {
-                systemInstruction,
-            },
+                systemInstruction: systemInstruction,
+            }
         });
 
         return response.text.trim();
     } catch (error) {
-        console.error("Error getting Gemini chat response:", error);
-        return "Sorry, I'm having a little trouble thinking right now. 😉";
+        console.error("Error getting chat response:", error);
+        return "I'm not sure what to say to that, tell me more."; // Fallback message
     }
 };
 
-// FIX: Added missing function `getGeminiInitialMessage` required by ChatScreen.tsx.
-export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promise<string> => {
-    try {
-        const systemInstruction = generatePersonaSystemInstruction(matchProfile);
-        const prompt = "Write a short, flirty, and engaging opening message to a new match. Your message should invite a response.";
-
-        const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-                systemInstruction,
-            },
-        });
-        return response.text.trim();
-    } catch (error) {
-        console.error("Error getting initial message:", error);
-        return "Hey there ;)";
-    }
-};
-
-// FIX: Added missing function `getGeminiIcebreaker` required by ChatScreen.tsx.
+// FIX: Implement and export getGeminiIcebreaker for ChatScreen.tsx
 export const getGeminiIcebreaker = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
     try {
-        const prompt = `Based on these two profiles, suggest a witty and slightly naughty icebreaker question or opening line that the user can send.
+        const prompt = `Based on my profile and their profile, suggest a witty and flirty icebreaker message I can send. Just give me the message, nothing else. The tone should be confident and a little daring.
         
-        USER PROFILE:
-        - Looking for: ${userProfile.lookingFor.join(', ')}
-        - Kinks: ${userProfile.kinks.map(k => k.name).join(', ')}
-        - Roles: ${userProfile.roles.join(', ')}
-        - Bio: ${userProfile.bio}
+        My Profile:
+        Bio: ${userProfile.bio}
+        Looking for: ${userProfile.lookingFor.join(', ')}
+        Kinks: ${userProfile.kinks.map(k => k.name).join(', ')}
 
-        MATCH PROFILE:
-        - Name: ${matchProfile.name}
-        - Looking for: ${matchProfile.lookingFor.join(', ')}
-        - Kinks: ${matchProfile.kinks.map(k => k.name).join(', ')}
-        - Roles: ${matchProfile.roles.join(', ')}
-        - Bio: ${matchProfile.bio}
+        Their Profile:
+        Name: ${matchProfile.name}
+        Bio: ${matchProfile.bio}
+        Looking for: ${matchProfile.lookingFor.join(', ')}
+        Kinks: ${matchProfile.kinks.map(k => k.name).join(', ')}
+        `;
 
-        The icebreaker should be a single message, ready to be sent. Do not include any explanation or prefixes like "Here's a suggestion:". Just provide the message text itself.`;
-        
         const response = await ai.models.generateContent({
             model,
             contents: prompt,
         });
 
-        // Remove quotes if the model wraps the response in them
         let text = response.text.trim();
-        if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+        if (text.startsWith('"') && text.endsWith('"')) {
             text = text.substring(1, text.length - 1);
         }
         return text;
     } catch (error) {
         console.error("Error getting icebreaker:", error);
-        return "What's the most adventurous thing you've ever done?";
+        return "Hey, I saw your profile and was intrigued..."; // Fallback
     }
 };
 
-// FIX: Added missing function `getGeminiFantasyResponse` required by ChatScreen.tsx.
-export const getGeminiFantasyResponse = async (history: ChatMessage[], scenario: string, userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
+// FIX: Implement and export getGeminiFantasyResponse for ChatScreen.tsx
+export const getGeminiFantasyResponse = async (
+    history: ChatMessage[],
+    scenario: string,
+    userProfile: UserProfile,
+    matchProfile: UserProfile,
+): Promise<string> => {
     try {
         const systemInstruction = getFantasySystemInstruction(scenario, userProfile.name, matchProfile.name);
         const contents = buildHistory(history);
@@ -121,12 +181,13 @@ export const getGeminiFantasyResponse = async (history: ChatMessage[], scenario:
             model,
             contents,
             config: {
-                systemInstruction,
-            },
+                systemInstruction: systemInstruction,
+            }
         });
+        
         return response.text.trim();
     } catch (error) {
-        console.error("Error getting Gemini fantasy response:", error);
-        return "My imagination is running a bit wild right now... what were we doing again?";
+        console.error("Error getting fantasy response:", error);
+        return "I seem to have lost my train of thought..."; // Fallback
     }
 };
