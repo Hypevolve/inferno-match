@@ -159,8 +159,9 @@ const App: React.FC = () => {
   };
 
   const handleProfileCreated = (profile: UserProfile) => {
-    setUserProfile({ ...profile, location: { lat: 37.7749, lon: -122.4194 } });
-    setCurrentScreen(Screen.SWIPE);
+    const wasEditing = !!userProfile;
+    setUserProfile({ ...profile, location: userProfile?.location || { lat: 37.7749, lon: -122.4194 } });
+    setCurrentScreen(wasEditing ? Screen.PROFILE : Screen.SWIPE);
   };
   
   const nextProfile = (queue: 'match' | 'spotlight', profileId: string) => {
@@ -322,12 +323,13 @@ const App: React.FC = () => {
   };
   
   const renderScreen = () => {
+    const isEditingProfile = !!userProfile;
     switch (currentScreen) {
       case Screen.ONBOARDING_WELCOME:
       case Screen.LOGGED_OUT:
         return <OnboardingWelcomeScreen onStart={handleStartOnboarding} />;
       case Screen.PROFILE_CREATOR: 
-        return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
+        return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} onBack={isEditingProfile ? () => setCurrentScreen(Screen.PROFILE) : undefined} />;
     }
     
     if (!userProfile) {

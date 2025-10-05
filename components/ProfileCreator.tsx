@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Kink, ProfilePrompt, AudioPrompt } from '../types';
 import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
@@ -10,11 +12,12 @@ import { fileToDataUri, processImage } from '../helpers/imageProcessing';
 interface ProfileCreatorProps {
   onProfileCreated: (profile: UserProfile) => void;
   profileToEdit: UserProfile | null;
+  onBack?: () => void;
 }
 
 const TOTAL_STEPS = 5;
 
-const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profileToEdit }) => {
+const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profileToEdit, onBack }) => {
   const [step, setStep] = useState(1);
 
   const [name, setName] = useState('');
@@ -93,8 +96,14 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
   };
   
   const handleRemoveMedia = () => {
-      setImagePreview(`https://i.pravatar.cc/400?u=user-default`);
-      setVideoPreview(null);
+      // In edit mode, don't revert to default, revert to original profile pic
+      if(isEditing && profileToEdit) {
+          setImagePreview(profileToEdit.imageUrl);
+          setVideoPreview(profileToEdit.videoUrl || null);
+      } else {
+          setImagePreview(`https://i.pravatar.cc/400?u=user-default`);
+          setVideoPreview(null);
+      }
       setSelectedFile(null);
       if(fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -136,7 +145,7 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       roles,
       lookingFor: selectedLookingFor,
       imageUrl,
-      publicAlbum: profileToEdit?.publicAlbum || [],
+      publicAlbum: profileToEdit?.publicAlbum.includes(imageUrl) ? profileToEdit.publicAlbum : [imageUrl, ...(profileToEdit?.publicAlbum || [])],
       privateVault: profileToEdit?.privateVault || [],
       vaultAccessRequestsFrom: profileToEdit?.vaultAccessRequestsFrom || [],
       vaultAccessGrantedTo: profileToEdit?.vaultAccessGrantedTo || [],
@@ -154,7 +163,16 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
   const nextStep = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
   
-  const canGoNext = useMemo(() => {
+  const isProfileValid = useMemo(() => {
+    return name.trim().length > 1 &&
+           age >= 18 &&
+           (imagePreview !== `https://i.pravatar.cc/400?u=user-default` && imagePreview !== null) &&
+           bio.trim().length > 10 &&
+           roles.length > 0 &&
+           kinks.length > 0;
+  }, [name, age, imagePreview, bio, roles, kinks]);
+
+  const canGoNextOnboarding = useMemo(() => {
     switch(step) {
         case 1: return name.trim().length > 1 && age >= 18;
         case 2: return imagePreview !== `https://i.pravatar.cc/400?u=user-default` && imagePreview !== null;
@@ -164,12 +182,123 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
         default: return false;
     }
   }, [step, name, age, imagePreview, bio, roles, kinks]);
+  
+    if(isEditing) {
+        return (
+            <div className="flex-grow flex flex-col h-full bg-brand-bg">
+                <div className="p-4">
+                    <div className="flex items-center justify-between mb-6 relative">
+                        <button onClick={onBack} className="p-2 absolute left-0 -ml-2 text-brand-text-dark hover:text-white">
+                            <ChevronLeftIcon className="h-6 w-6" />
+                        </button>
+                        <h1 className="text-2xl font-bold text-center w-full text-brand-text-light">Edit Profile</h1>
+                    </div>
+                </div>
+
+                <div className="flex-grow overflow-y-auto no-scrollbar px-4" style={{ scrollbarWidth: 'none' }}>
+                    <div className="space-y-8">
+                        {/* Basics */}
+                         <div className="space-y-6">
+                            <h2 className="text-xl font-semibold text-center text-brand-text-dark">The Basics</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-brand-text-light mb-1">Name</label>
+                                <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm p-3 text-white" required/>
+                                </div>
+                                <div>
+                                <label htmlFor="age" className="block text-sm font-medium text-brand-text-light mb-1">Age</label>
+                                <input type="number" id="age" value={age} onChange={(e) => setAge(parseInt(e.target.value, 10))} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm p-3 text-white" min="18" max="99" required/>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                <label htmlFor="height" className="block text-sm font-medium text-brand-text-light mb-1">Height (cm)</label>
+                                <input type="number" id="height" value={height} onChange={(e) => setHeight(parseInt(e.target.value, 10))} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm p-3 text-white" min="120" max="250" required/>
+                                </div>
+                                <div>
+                                <label htmlFor="relationshipType" className="block text-sm font-medium text-brand-text-light mb-1">Relationship Type</label>
+                                <select id="relationshipType" value={relationshipType} onChange={e => setRelationshipType(e.target.value)} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm p-3 text-white">
+                                    {RELATIONSHIP_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Media */}
+                        <div className="space-y-6 text-center">
+                            <h2 className="text-xl font-semibold text-brand-text-dark">Your Profile Media</h2>
+                            <div className="flex justify-center">
+                                <div className="relative w-64 h-64">
+                                    {videoPreview ? (
+                                        <video src={videoPreview} autoPlay muted loop playsInline className="w-full h-full rounded-2xl object-cover border-4 border-brand-primary" />
+                                    ) : (
+                                        <img src={imagePreview || ''} alt="Profile Preview" className="w-full h-full rounded-2xl object-cover border-4 border-brand-surface-light" />
+                                    )}
+                                    {isProcessing && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl">
+                                            <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,video/*" disabled={isProcessing}/>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 justify-center">
+                                <button type="button" onClick={() => !isProcessing && fileInputRef.current?.click()} disabled={isProcessing} className="px-6 py-3 bg-brand-surface-light text-white font-bold rounded-lg transition-colors duration-300 hover:bg-brand-surface disabled:opacity-50">
+                                    Change Photo/Video
+                                </button>
+                                <button type="button" onClick={handleRemoveMedia} disabled={isProcessing} className="px-6 py-3 bg-brand-surface-light text-brand-text-dark font-bold rounded-lg transition-colors duration-300 hover:bg-brand-surface disabled:opacity-50">
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Bio & Vibe */}
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-semibold text-center text-brand-text-dark">Craft Your Vibe</h2>
+                            <div>
+                                <label htmlFor="bio" className="block text-sm font-medium text-brand-text-light mb-1">Bio</label>
+                                <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={5} placeholder={DEFAULT_PERSONA_BIO} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm p-3 text-white" required/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-brand-text-light mb-2">I'm looking for...</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {LOOKING_FOR_OPTIONS.map(tag => (
+                                    <button type="button" key={tag} onClick={() => handleLookingForToggle(tag)}
+                                        className={`px-3 py-1.5 text-sm rounded-full transition-all duration-200 font-semibold ${selectedLookingFor.includes(tag) ? 'bg-brand-gradient text-white shadow-md' : 'bg-brand-surface-light text-brand-text-dark hover:bg-brand-surface'}`}>
+                                        {tag}
+                                    </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Desires */}
+                        <div>
+                             <h2 className="text-xl font-semibold text-center text-brand-text-dark mb-4">Define Your Desires</h2>
+                              <PersonaCustomizer 
+                                kinks={kinks} setKinks={setKinks}
+                                roles={roles} setRoles={setRoles}
+                                textPrompts={textPrompts} setTextPrompts={setTextPrompts}
+                                audioPrompts={audioPrompts} setAudioPrompts={setAudioPrompts}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 mt-auto">
+                    <button onClick={handleSubmit} disabled={isProcessing || !isProfileValid} className="w-full bg-brand-gradient text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-75 disabled:cursor-wait">
+                        {isProcessing ? 'Processing...' : 'Save Profile'}
+                    </button>
+                </div>
+            </div>
+        )
+    }
 
   return (
     <div className="flex-grow flex flex-col p-4 bg-brand-bg overflow-y-auto no-scrollbar" style={{ scrollbarWidth: 'none' }}>
         <div className="mb-6">
              <div className="flex items-center gap-4">
-                {step > 1 && !isEditing && (
+                {step > 1 && (
                     <button onClick={prevStep} className="p-2 text-brand-text-dark hover:text-white">
                         <ChevronLeftIcon className="h-6 w-6"/>
                     </button>
@@ -178,7 +307,7 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
                     <div className="bg-brand-primary h-2.5 rounded-full transition-all duration-500" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}></div>
                 </div>
             </div>
-            <h1 className="text-2xl font-bold text-brand-text-light mt-4 text-center">{isEditing ? 'Edit Your Profile' : 'Create Your Profile'}</h1>
+            <h1 className="text-2xl font-bold text-brand-text-light mt-4 text-center">Create Your Profile</h1>
         </div>
       
       <div className="flex-grow">
@@ -272,13 +401,13 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       </div>
       
       <div className="pt-4 pb-4 mt-auto">
-          {step < TOTAL_STEPS && !isEditing ? (
-            <button onClick={nextStep} disabled={!canGoNext || isProcessing} className="w-full bg-brand-gradient text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50">
+          {step < TOTAL_STEPS ? (
+            <button onClick={nextStep} disabled={!canGoNextOnboarding || isProcessing} className="w-full bg-brand-gradient text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50">
               Next
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={isProcessing || !canGoNext} className="w-full bg-brand-gradient text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-75 disabled:cursor-wait">
-              {isProcessing ? 'Processing...' : (isEditing ? 'Save Profile' : 'Start Swiping')}
+            <button onClick={handleSubmit} disabled={isProcessing || !isProfileValid} className="w-full bg-brand-gradient text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-75 disabled:cursor-wait">
+              {isProcessing ? 'Processing...' : 'Start Swiping'}
             </button>
           )}
         </div>
