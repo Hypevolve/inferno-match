@@ -150,3 +150,23 @@ export const FilterIcon: React.FC<IconProps> = (props) => (
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
     </svg>
 );
+
+export const SparklesIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" {...props} viewBox="0 0 24 24" fill="currentColor">
+        <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.75.75V8.5h3.5a.75.75 0 010 1.5H9.75V13.5a.75.75 0 01-1.5 0V9.75H4.75a.75.75 0 010-1.5H8.5V5.25A.75.75 0 019 4.5z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M13.134 14.366a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H13.884a.75.75 0 01-.75-.75zM12.75 18a.75.75 0 00-.75.75v2.25a.75.75 0 001.5 0V18.75a.75.75 0 00-.75-.75z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M16.48 4.312a.75.75 0 010 1.06l-1.01 1.01a.75.75 0 11-1.06-1.06l1.01-1.01a.75.75 0 011.06 0zM19.5 10.375a.75.75 0 00.75-.75V7.375a.75.75 0 00-1.5 0v2.25a.75.75 0 00.75.75z" clipRule="evenodd" />
+    </svg>
+);
+
+export const ChevronLeftIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+    </svg>
+);
+
+export const ChevronRightIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+    </svg>
+);

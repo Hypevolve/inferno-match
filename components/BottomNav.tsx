@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Screen } from '../types';
-import { FlameIcon, MatchesIcon, ProfileIcon, DiamondIcon } from './Icons';
+import { FlameIcon, MatchesIcon, ProfileIcon, DiamondIcon, SparklesIcon } from './Icons';
 
 interface BottomNavProps {
     activeScreen: Screen;
@@ -16,7 +16,7 @@ const NavItem: React.FC<{
     onClick: () => void,
     badgeCount?: number
 }> = ({ icon, label, isActive, onClick, badgeCount = 0 }) => (
-    <button onClick={onClick} className="relative flex flex-col items-center justify-center w-1/4 transition-colors duration-200 gap-1 pt-2 pb-1 group">
+    <button onClick={onClick} className="relative flex flex-col items-center justify-center w-1/5 transition-colors duration-200 gap-1 pt-2 pb-1 group">
         {badgeCount > 0 && (
             <span className="absolute top-1 right-1/2 translate-x-4 px-2 py-0.5 text-xs font-bold text-white bg-brand-primary rounded-full animate-pulse">
                 {badgeCount}
@@ -41,6 +41,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate, newLike
                 label="Discover"
                 isActive={activeScreen === Screen.SWIPE}
                 onClick={() => onNavigate(Screen.SWIPE)}
+            />
+            <NavItem 
+                icon={<SparklesIcon className="h-7 w-7" />}
+                label="Spotlight"
+                isActive={activeScreen === Screen.SPOTLIGHT}
+                onClick={() => onNavigate(Screen.SPOTLIGHT)}
             />
             <NavItem 
                 icon={<DiamondIcon className="h-7 w-7" />}

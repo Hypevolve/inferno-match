@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Kink, ProfilePrompt, AudioPrompt } from '../types';
-import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS } from '../constants';
+import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
 import PersonaCustomizer from './PersonaCustomizer';
 
 interface ProfileCreatorProps {
@@ -78,9 +78,10 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
   const [name, setName] = useState('You');
   const [age, setAge] = useState(25);
   const [bio, setBio] = useState(DEFAULT_PERSONA_BIO);
+  const [height, setHeight] = useState(175);
+  const [relationshipType, setRelationshipType] = useState(RELATIONSHIP_TYPE_OPTIONS[0]);
   const [selectedLookingFor, setSelectedLookingFor] = useState<string[]>(['#Casual']);
   
-  // State for PersonaCustomizer
   const [kinks, setKinks] = useState<Kink[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [textPrompts, setTextPrompts] = useState<ProfilePrompt[]>([]);
@@ -97,6 +98,8 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       setName(profileToEdit.name);
       setAge(profileToEdit.age);
       setBio(profileToEdit.bio);
+      setHeight(profileToEdit.height);
+      setRelationshipType(profileToEdit.relationshipType);
       setSelectedLookingFor(profileToEdit.lookingFor);
       setImagePreview(profileToEdit.imageUrl);
       setVideoPreview(profileToEdit.videoUrl || null);
@@ -119,12 +122,11 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
             setSelectedFile(processedFile);
             const previewUrl = URL.createObjectURL(processedFile);
             setImagePreview(previewUrl);
-            setVideoPreview(null); // If user uploads image, clear video
+            setVideoPreview(null);
         } else if (file.type.startsWith('video/')) {
             setSelectedFile(file);
             const previewUrl = URL.createObjectURL(file);
             setVideoPreview(previewUrl);
-            // We can still create an image thumbnail from the video
             const canvas = document.createElement('canvas');
             const video = document.createElement('video');
             video.src = previewUrl;
@@ -166,7 +168,7 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
         const dataUri = await fileToDataUri(selectedFile);
         if (selectedFile.type.startsWith('video/')) {
             videoUrl = dataUri;
-            imageUrl = imagePreview; // The generated thumbnail
+            imageUrl = imagePreview;
         } else {
             imageUrl = dataUri;
             videoUrl = undefined;
@@ -178,6 +180,8 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       name,
       age,
       bio,
+      height,
+      relationshipType,
       kinks,
       roles,
       lookingFor: selectedLookingFor,
@@ -188,6 +192,7 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       isVerified: profileToEdit?.isVerified || false,
       badges: profileToEdit?.badges || [],
       lastActive: Date.now(),
+      location: profileToEdit?.location || { lat: 37.7749, lon: -122.4194 } // Default location
     };
     onProfileCreated(newProfile);
   };
@@ -220,16 +225,30 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
             </div>
         </div>
 
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-brand-text-light mb-1">Name</label>
-          <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" required/>
-        </div>
-
-        <div>
-          <label htmlFor="age" className="block text-sm font-medium text-brand-text-light mb-1">Age</label>
-          <input type="number" id="age" value={age} onChange={(e) => setAge(parseInt(e.target.value, 10))} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" min="18" max="99" required/>
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-brand-text-light mb-1">Name</label>
+              <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" required/>
+            </div>
+            <div>
+              <label htmlFor="age" className="block text-sm font-medium text-brand-text-light mb-1">Age</label>
+              <input type="number" id="age" value={age} onChange={(e) => setAge(parseInt(e.target.value, 10))} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" min="18" max="99" required/>
+            </div>
         </div>
         
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="height" className="block text-sm font-medium text-brand-text-light mb-1">Height (cm)</label>
+              <input type="number" id="height" value={height} onChange={(e) => setHeight(parseInt(e.target.value, 10))} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" min="120" max="250" required/>
+            </div>
+             <div>
+              <label htmlFor="relationshipType" className="block text-sm font-medium text-brand-text-light mb-1">Relationship Type</label>
+              <select id="relationshipType" value={relationshipType} onChange={e => setRelationshipType(e.target.value)} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white">
+                {RELATIONSHIP_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+        </div>
+
         <div>
           <label htmlFor="bio" className="block text-sm font-medium text-brand-text-light mb-1">Bio</label>
           <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="block w-full bg-brand-surface-light border-brand-surface rounded-md shadow-sm focus:ring-brand-primary focus:border-brand-primary sm:text-sm p-3 text-white" required/>

@@ -32,10 +32,13 @@ export interface UserProfile {
   isVerified: boolean;
   badges: string[]; // Array of badge IDs
   lastActive: number; // UTC timestamp
-  compatibilityScore?: {
-    score: number;
-    rationale: string;
+  height: number; // in cm
+  relationshipType: string;
+  location: {
+    lat: number;
+    lon: number;
   };
+  isSpotlight?: boolean;
 }
 
 export interface ChatMessage {
@@ -68,12 +71,22 @@ export enum Screen {
   PRODUCT_PLAN,
   VERIFICATION,
   SAFETY_CENTER,
+  SPOTLIGHT,
 }
 
 export interface FilterSettings {
   ageRange: { min: number; max: number };
+  distance: number; // in km
+  heightRange: { min: number; max: number }; // in cm
+  relationshipTypes: string[];
   lookingFor: string[];
   kinks: string[];
   roles: string[];
   verifiedOnly: boolean;
+  dealbreakers: {
+    distance: boolean;
+    ageRange: boolean;
+    heightRange: boolean;
+    relationshipTypes: boolean;
+  };
 }

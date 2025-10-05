@@ -18,6 +18,12 @@ const KinkLevelIndicator: React.FC<{ level: KinkLevel }> = ({ level }) => {
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   const displayBio = profile.bio;
+  const heightInFeetInches = (cm: number) => {
+      const totalInches = cm / 2.54;
+      const feet = Math.floor(totalInches / 12);
+      const inches = Math.round(totalInches % 12);
+      return `${feet}'${inches}"`;
+  };
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-brand-surface">
@@ -40,7 +46,12 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
             <h2 className="text-3xl font-bold drop-shadow-lg">{profile.name}, {profile.age}</h2>
             {profile.isVerified && <VerifiedIcon className="h-7 w-7 text-blue-400 flex-shrink-0" />}
         </div>
-        <p className="text-gray-200 mt-2 text-sm drop-shadow-md">{displayBio}</p>
+        <div className="flex items-center gap-3 text-gray-200 mt-1 text-sm drop-shadow-md">
+            <span>{heightInFeetInches(profile.height)}</span>
+            <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+            <span>{profile.relationshipType}</span>
+        </div>
+        <p className="mt-2 text-sm drop-shadow-md">{displayBio}</p>
         
         <div className="flex flex-wrap gap-2 mt-4">
           {profile.lookingFor.map(tag => (
@@ -81,7 +92,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
             ))}
           </div>
         )}
-
 
         <div className="flex flex-wrap gap-2 mt-4">
           {profile.kinks.slice(0, 10).map(kink => (

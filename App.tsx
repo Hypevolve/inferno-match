@@ -15,8 +15,10 @@ import FilterScreen from './components/FilterScreen';
 import ProductPlanScreen from './components/ProductPlanScreen';
 import VerificationScreen from './components/VerificationScreen';
 import SafetyCenterScreen from './components/SafetyCenterScreen';
+import SpotlightScreen from './components/SpotlightScreen';
 import { generateMatches } from './services/matchService';
 import { getGeminiCompatibilityScore } from './services/geminiService';
+import { haversineDistance } from './helpers/geolocation';
 
 const App: React.FC = () => {
   const [isAgeVerified, setIsAgeVerified] = useState<boolean>(false);
@@ -24,6 +26,7 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
   const [matchQueue, setMatchQueue] = useState<UserProfile[]>([]);
+  const [spotlightQueue, setSpotlightQueue] = useState<UserProfile[]>([]);
   const [isQueueLoading, setIsQueueLoading] = useState<boolean>(true);
   const [matches, setMatches] = useState<UserProfile[]>([]);
   const [likers, setLikers] = useState<UserProfile[]>([]);
@@ -40,62 +43,100 @@ const App: React.FC = () => {
 
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
     ageRange: { min: 18, max: 99 },
+    distance: 250, // 250km for 'Global'
+    heightRange: { min: 120, max: 250 },
+    relationshipTypes: [],
     lookingFor: [],
     kinks: [],
     roles: [],
     verifiedOnly: false,
+    dealbreakers: { distance: false, ageRange: false, heightRange: false, relationshipTypes: false },
   });
   const [isIncognito, setIsIncognito] = useState<boolean>(false);
 
   const filteredMatchQueue = useMemo(() => {
+    if (!userProfile) return [];
     return matchQueue.filter(profile => {
-      const { ageRange, lookingFor, kinks, roles, verifiedOnly } = filterSettings;
-      if (profile.age < ageRange.min || profile.age > ageRange.max) return false;
+      const { ageRange, lookingFor, kinks, roles, verifiedOnly, distance, heightRange, relationshipTypes, dealbreakers } = filterSettings;
+      
+      // Age
+      if (profile.age < ageRange.min || profile.age > ageRange.max) {
+        if (dealbreakers.ageRange) return false;
+      }
+      
+      // Verified
       if (verifiedOnly && !profile.isVerified) return false;
+      
+      // Distance
+      if (distance < 250) { // 250 is global
+        const dist = haversineDistance(userProfile.location, profile.location);
+        if (dist > distance) {
+          if (dealbreakers.distance) return false;
+        }
+      }
+      
+      // Height
+      if (profile.height < heightRange.min || profile.height > heightRange.max) {
+         if (dealbreakers.heightRange) return false;
+      }
+
+      // Relationship Type
+      if (relationshipTypes.length > 0 && !relationshipTypes.includes(profile.relationshipType)) {
+        if (dealbreakers.relationshipTypes) return false;
+      }
+
+      // Tags (not treated as dealbreakers for this example)
       if (lookingFor.length > 0 && !lookingFor.some(tag => profile.lookingFor.includes(tag))) return false;
       if (roles.length > 0 && !roles.some(role => profile.roles.includes(role))) return false;
       if (kinks.length > 0 && !kinks.some(kinkFilter => profile.kinks.some(k => k.name === kinkFilter))) return false;
+
       return true;
     });
-  }, [matchQueue, filterSettings]);
+  }, [matchQueue, filterSettings, userProfile]);
   
   const areFiltersActive = useMemo(() => {
     return (
-      filterSettings.ageRange.min !== 18 ||
-      filterSettings.ageRange.max !== 99 ||
-      filterSettings.lookingFor.length > 0 ||
-      filterSettings.kinks.length > 0 ||
-      filterSettings.roles.length > 0 ||
-      filterSettings.verifiedOnly
+      filterSettings.ageRange.min !== 18 || filterSettings.ageRange.max !== 99 ||
+      filterSettings.distance !== 250 ||
+      filterSettings.heightRange.min !== 120 || filterSettings.heightRange.max !== 250 ||
+      filterSettings.relationshipTypes.length > 0 ||
+      filterSettings.lookingFor.length > 0 || filterSettings.kinks.length > 0 ||
+      filterSettings.roles.length > 0 || filterSettings.verifiedOnly
     );
   }, [filterSettings]);
 
-  const calculateAndSetCompatibilityScores = useCallback((newMatches: UserProfile[]) => {
+  const calculateAndSetCompatibilityScores = useCallback((newProfiles: UserProfile[]) => {
     if (!userProfile) return;
-    newMatches.forEach(async (match) => {
-        try {
-            const scoreData = await getGeminiCompatibilityScore(userProfile, match);
-            if (scoreData) {
-                setMatchQueue(prevQueue => 
-                    prevQueue.map(p => p.id === match.id ? { ...p, compatibilityScore: scoreData } : p)
-                );
+    const processQueue = async () => {
+        for (const profile of newProfiles) {
+            try {
+                const scoreData = await getGeminiCompatibilityScore(userProfile, profile);
+                if (scoreData) {
+                    setMatchQueue(prev => prev.map(p => p.id === profile.id ? { ...p, compatibilityScore: scoreData } : p));
+                    setSpotlightQueue(prev => prev.map(p => p.id === profile.id ? { ...p, compatibilityScore: scoreData } : p));
+                }
+            } catch (error) {
+                console.error(`Error getting compatibility score for ${profile.id}:`, error);
             }
-        } catch (error) {
-            console.error(`Failed to calculate score for match ${match.id}`, error);
+            await new Promise(resolve => setTimeout(resolve, 1500)); 
         }
-    });
+    };
+    processQueue();
   }, [userProfile]);
 
   const loadMoreMatches = useCallback(() => {
     setIsQueueLoading(true);
-    // Simulate network delay
     setTimeout(() => {
-        const newMatches = generateMatches();
-        setMatchQueue(prev => [...prev, ...newMatches]);
+        const newProfiles = generateMatches(20);
+        const newSpotlight = newProfiles.filter(p => p.isSpotlight);
+        const newRegular = newProfiles.filter(p => !p.isSpotlight);
+        
+        setMatchQueue(prev => [...prev, ...newRegular]);
+        setSpotlightQueue(prev => [...prev, ...newSpotlight]);
+
         setIsQueueLoading(false);
-         // Start calculating scores in the background
         if (userProfile) {
-          calculateAndSetCompatibilityScores(newMatches);
+          calculateAndSetCompatibilityScores(newProfiles);
         }
     }, 500);
   }, [userProfile, calculateAndSetCompatibilityScores]);
@@ -106,11 +147,10 @@ const App: React.FC = () => {
     }
   }, [userProfile, matchQueue.length, loadMoreMatches]);
 
-  // Simulate receiving likes
   useEffect(() => {
     if (!userProfile) return;
     const interval = setInterval(() => {
-        if(Math.random() < 0.3) { // 30% chance to get a new like every 5 seconds
+        if(Math.random() < 0.3) {
             const newLiker = generateMatches(1)[0];
             setLikers(prev => [newLiker, ...prev]);
             setNewLikesCount(prev => prev + 1);
@@ -119,22 +159,24 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [userProfile]);
 
-
   const handleAgeVerified = () => {
     setIsAgeVerified(true);
     setCurrentScreen(Screen.PROFILE_CREATOR);
   };
 
   const handleProfileCreated = (profile: UserProfile) => {
-    setUserProfile(profile);
+    setUserProfile({ ...profile, location: { lat: 37.7749, lon: -122.4194 } }); // Set static location for user
     setCurrentScreen(Screen.SWIPE);
   };
   
-  const nextProfile = () => {
-    setIsQueueLoading(true);
-    setMatchQueue(prev => prev.slice(1));
-    // Simulate loading the next profile card
-    setTimeout(() => setIsQueueLoading(false), 300);
+  const nextProfile = (queue: 'match' | 'spotlight', profileId: string) => {
+    if (queue === 'match') {
+      setIsQueueLoading(true);
+      setMatchQueue(prev => prev.filter(p => p.id !== profileId));
+      setTimeout(() => setIsQueueLoading(false), 300);
+    } else {
+      setSpotlightQueue(prev => prev.filter(p => p.id !== profileId));
+    }
   };
 
   const handleLike = (likedProfile: UserProfile) => {
@@ -143,7 +185,7 @@ const App: React.FC = () => {
         setPendingMatch(likedProfile);
         setLastMatchWasSuperLike(false);
     }
-    nextProfile();
+    nextProfile('match', likedProfile.id);
   };
   
   const handleSuperLike = (likedProfile: UserProfile) => {
@@ -152,16 +194,18 @@ const App: React.FC = () => {
         setPendingMatch(likedProfile);
         setLastMatchWasSuperLike(true);
     }
-    nextProfile();
+    const queueType = likedProfile.isSpotlight ? 'spotlight' : 'match';
+    nextProfile(queueType, likedProfile.id);
   };
 
   const handlePass = (passedProfile: UserProfile) => {
     setLastPassedProfile(passedProfile);
-    nextProfile();
+    const queueType = passedProfile.isSpotlight ? 'spotlight' : 'match';
+    nextProfile(queueType, passedProfile.id);
   };
 
   const handleRewind = () => {
-    if (lastPassedProfile) {
+    if (lastPassedProfile && !lastPassedProfile.isSpotlight) { // Can't rewind spotlight for now
       setMatchQueue(prev => [lastPassedProfile, ...prev]);
       setLastPassedProfile(null);
     }
@@ -169,11 +213,8 @@ const App: React.FC = () => {
   
   const handleBoost = () => {
       setIsBoostActive(true);
-      setBoostEndTime(Date.now() + 30 * 60 * 1000); // 30 minutes
-      setTimeout(() => {
-          setIsBoostActive(false);
-          setBoostEndTime(null);
-      }, 30 * 60 * 1000);
+      setBoostEndTime(Date.now() + 30 * 60 * 1000);
+      setTimeout(() => setIsBoostActive(false), 30 * 60 * 1000);
   };
   
   const handleInstantMatch = (likerProfile: UserProfile) => {
@@ -181,13 +222,11 @@ const App: React.FC = () => {
       setLikers(prev => prev.filter(p => p.id !== likerProfile.id));
       setPendingMatch(likerProfile);
       setLastMatchWasSuperLike(false);
-      setCurrentScreen(Screen.SWIPE); // Navigate back to swipe screen to see the match modal
+      setCurrentScreen(Screen.SWIPE);
   };
 
   const handleNavigate = (screen: Screen) => {
-    if (screen === Screen.LIKES_YOU) {
-        setNewLikesCount(0);
-    }
+    if (screen === Screen.LIKES_YOU) setNewLikesCount(0);
     setCurrentScreen(screen);
   };
 
@@ -210,21 +249,14 @@ const App: React.FC = () => {
   
   const handleEndVideoCall = () => {
       setActiveVideoCallMatch(null);
-      setCurrentScreen(Screen.CHAT); // Go back to chat
+      setCurrentScreen(Screen.CHAT);
   }
 
-  const handleEditProfile = () => {
-    setCurrentScreen(Screen.PROFILE_CREATOR);
-  };
-  
-  const handleStartVerification = () => {
-      setCurrentScreen(Screen.VERIFICATION);
-  };
+  const handleEditProfile = () => setCurrentScreen(Screen.PROFILE_CREATOR);
+  const handleStartVerification = () => setCurrentScreen(Screen.VERIFICATION);
 
   const handleVerificationComplete = () => {
-      if(userProfile) {
-        setUserProfile({...userProfile, isVerified: true});
-      }
+      if(userProfile) setUserProfile({...userProfile, isVerified: true});
       setCurrentScreen(Screen.PROFILE);
   };
 
@@ -237,93 +269,50 @@ const App: React.FC = () => {
     if (!isAgeVerified) return <AgeGate onVerified={handleAgeVerified} />;
     
     switch (currentScreen) {
-      case Screen.PROFILE_CREATOR:
-        return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
-      case Screen.SWIPE:
-        return userProfile && <SwipeScreen 
+      case Screen.PROFILE_CREATOR: return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
+      case Screen.SWIPE: return userProfile && <SwipeScreen 
             userProfile={userProfile}
             currentProfile={filteredMatchQueue[0]}
-            isLoading={isQueueLoading}
-            onLike={handleLike}
-            onPass={handlePass}
-            onSuperLike={handleSuperLike}
-            onRewind={handleRewind}
-            canRewind={!!lastPassedProfile}
-            onBoost={handleBoost}
-            isBoostActive={isBoostActive}
-            boostEndTime={boostEndTime}
-            onOpenFilters={() => setCurrentScreen(Screen.FILTER)}
-            areFiltersActive={areFiltersActive}
+            isLoading={isQueueLoading && filteredMatchQueue.length === 0}
+            onLike={handleLike} onPass={handlePass} onSuperLike={handleSuperLike} onRewind={handleRewind}
+            canRewind={!!lastPassedProfile && !lastPassedProfile.isSpotlight}
+            onBoost={handleBoost} isBoostActive={isBoostActive} boostEndTime={boostEndTime}
+            onOpenFilters={() => setCurrentScreen(Screen.FILTER)} areFiltersActive={areFiltersActive}
         />;
-      case Screen.MATCHES:
-        return <MatchesScreen matches={matches} onChat={handleStartChat} />;
-      case Screen.PROFILE:
-        return userProfile && <UserProfileScreen 
-            userProfile={userProfile} 
-            onEditProfile={handleEditProfile}
-            onVerifyProfile={handleStartVerification}
-            onOpenSafetyCenter={() => setCurrentScreen(Screen.SAFETY_CENTER)}
-            isIncognito={isIncognito}
-            onToggleIncognito={() => setIsIncognito(p => !p)}
-            onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)}
+      case Screen.MATCHES: return <MatchesScreen matches={matches} onChat={handleStartChat} />;
+      case Screen.PROFILE: return userProfile && <UserProfileScreen 
+            userProfile={userProfile} onEditProfile={handleEditProfile} onVerifyProfile={handleStartVerification}
+            onOpenSafetyCenter={() => setCurrentScreen(Screen.SAFETY_CENTER)} isIncognito={isIncognito}
+            onToggleIncognito={() => setIsIncognito(p => !p)} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)}
         />;
-      case Screen.CHAT:
-        return userProfile && activeChatMatch && <ChatScreen 
-            userProfile={userProfile} 
-            matchProfile={activeChatMatch} 
-            onEndChat={handleEndChat}
-            onStartVideoCall={handleStartVideoCall}
+      case Screen.CHAT: return userProfile && activeChatMatch && <ChatScreen 
+            userProfile={userProfile} matchProfile={activeChatMatch} onEndChat={handleEndChat} onStartVideoCall={handleStartVideoCall}
         />;
-      case Screen.VIDEO_CALL:
-        return userProfile && activeVideoCallMatch && <VideoCallScreen
-            userProfile={userProfile}
-            matchProfile={activeVideoCallMatch}
-            onEndCall={handleEndVideoCall}
+      case Screen.VIDEO_CALL: return userProfile && activeVideoCallMatch && <VideoCallScreen
+            userProfile={userProfile} matchProfile={activeVideoCallMatch} onEndCall={handleEndVideoCall}
         />;
-      case Screen.LIKES_YOU:
-        return <LikesYouScreen likers={likers} onInstantMatch={handleInstantMatch} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)} />;
-      case Screen.FILTER:
-        return <FilterScreen 
-            currentSettings={filterSettings}
-            onSave={handleSaveFilters}
-            onBack={() => setCurrentScreen(Screen.SWIPE)}
-        />
-      case Screen.PRODUCT_PLAN:
-        return <ProductPlanScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />
-      case Screen.VERIFICATION:
-        return <VerificationScreen onComplete={handleVerificationComplete} onBack={() => setCurrentScreen(Screen.PROFILE)} />
-      case Screen.SAFETY_CENTER:
-        return <SafetyCenterScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />
-      default:
-        return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
+      case Screen.LIKES_YOU: return <LikesYouScreen likers={likers} onInstantMatch={handleInstantMatch} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)} />;
+      case Screen.FILTER: return <FilterScreen currentSettings={filterSettings} onSave={handleSaveFilters} onBack={() => setCurrentScreen(Screen.SWIPE)} />;
+      case Screen.PRODUCT_PLAN: return <ProductPlanScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
+      case Screen.VERIFICATION: return <VerificationScreen onComplete={handleVerificationComplete} onBack={() => setCurrentScreen(Screen.PROFILE)} />;
+      case Screen.SAFETY_CENTER: return <SafetyCenterScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
+      case Screen.SPOTLIGHT: return userProfile && <SpotlightScreen profiles={spotlightQueue} onSuperLike={handleSuperLike} onPass={handlePass} />;
+      default: return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
     }
   };
   
-  const showNav = userProfile && [Screen.SWIPE, Screen.MATCHES, Screen.PROFILE, Screen.LIKES_YOU].includes(currentScreen);
+  const showNav = userProfile && [Screen.SWIPE, Screen.MATCHES, Screen.PROFILE, Screen.LIKES_YOU, Screen.SPOTLIGHT].includes(currentScreen);
 
   return (
     <div className="h-[100dvh] w-screen max-w-md mx-auto flex flex-col bg-brand-bg shadow-2xl overflow-hidden">
       <div className="flex-grow flex flex-col min-h-0">
         {renderScreen()}
       </div>
-      
-      {showNav && (
-        <BottomNav 
-            activeScreen={currentScreen} 
-            onNavigate={handleNavigate}
-            newLikesCount={newLikesCount}
-        />
-      )}
-      
+      {showNav && <BottomNav activeScreen={currentScreen} onNavigate={handleNavigate} newLikesCount={newLikesCount} />}
       {pendingMatch && userProfile && (
         <ItsAMatchScreen 
-            userProfile={userProfile}
-            matchProfile={pendingMatch}
-            isSuperLike={lastMatchWasSuperLike}
-            onSendMessage={() => {
-                handleStartChat(pendingMatch);
-                setPendingMatch(null);
-            }}
+            userProfile={userProfile} matchProfile={pendingMatch} isSuperLike={lastMatchWasSuperLike}
+            onSendMessage={() => { handleStartChat(pendingMatch); setPendingMatch(null); }}
             onKeepSwiping={() => setPendingMatch(null)}
         />
       )}

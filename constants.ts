@@ -17,6 +17,10 @@ export const LOOKING_FOR_OPTIONS = [
     "#Casual", "#LongTerm", "#Exploration", "#KinkPartner", "#Threesome", "#Friends"
 ];
 
+export const RELATIONSHIP_TYPE_OPTIONS = [
+    "Monogamous", "Non-Monogamous", "Exploring", "Polyamorous", "Relationship Anarchy"
+];
+
 export const PROFILE_PROMPTS = [
   "A boundary I enjoy pushing is...",
   "The key to my desire is...",

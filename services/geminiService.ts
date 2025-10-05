@@ -29,181 +29,204 @@ const getFantasySystemInstruction = (scenario: string, userCharacter: string, ai
 The scenario is: "${scenario}".
 You will be playing the role of ${aiCharacter}. The user is playing ${userCharacter}.
 Your role is to drive the story forward, describing the environment, your character's actions, and responding to the user's actions.
-Be creative, descriptive, and seductive. Match the user's level of detail.
-Keep your responses contained to the roleplay. Do not break character or mention that you are an AI.`;
+Be creative, descriptive, and seductive. Match the user's level of detail`;
 };
 
-const buildHistory = (history: ChatMessage[]): Content[] => {
-    return history.map(msg => {
-        const parts: Part[] = [];
-        let text = msg.text || '';
-        if (!msg.text) { // Add context for media-only messages
-            if (msg.type === 'photo' || msg.imageUrl) text = '[User sent a photo]';
-            else if (msg.type === 'video' || msg.videoUrl) text = '[User sent a video]';
-            else if (msg.type === 'gif' || msg.gifUrl) text = '[User sent a GIF]';
-            else if (msg.type === 'audio' || msg.audioUrl) text = '[User sent a voice message]';
-        }
-
-        if (text) {
-            parts.push({ text });
-        }
-        if (msg.imageUrl) {
-            const imagePart = dataUriToPart(msg.imageUrl);
-            if (imagePart) parts.push(imagePart);
-        }
-        
-        return {
-            role: msg.sender === 'user' ? 'user' : 'model',
-            parts: parts,
-        };
-    }).filter(c => c.parts.length > 0);
+// FIX: Implement and export missing service functions.
+const profileToText = (profile: UserProfile): string => {
+  return `
+    Name: ${profile.name}
+    Age: ${profile.age}
+    Bio: "${profile.bio}"
+    Kinks: ${profile.kinks.map(k => `${k.name} (${k.level})`).join(', ') || 'Not specified'}
+    Roles: ${profile.roles.join(', ') || 'Not specified'}
+    Looking for: ${profile.lookingFor.join(', ') || 'Not specified'}
+    Relationship Type: ${profile.relationshipType}
+    Text Prompts: ${profile.textPrompts.map(p => `Q: ${p.question} A: ${p.answer}`).join(' | ')}
+  `.trim();
 };
 
-export const getGeminiCompatibilityScore = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<{ score: number; rationale: string; } | null> => {
-    const prompt = `
-Analyze the compatibility between two dating profiles.
-Provide a compatibility score from 0 to 100 and a short, flirty, and intriguing rationale (1-2 sentences).
-The rationale should be something the user would see in the app to explain why they are a good match.
-
-User's Profile:
-- Name: ${userProfile.name}
-- Kinks: ${userProfile.kinks.map(k => `${k.name} (${k.level})`).join(', ')}
-- Roles: ${userProfile.roles.join(', ')}
-- Looking for: ${userProfile.lookingFor.join(', ')}
-
-Match's Profile:
-- Name: ${matchProfile.name}
-- Kinks: ${matchProfile.kinks.map(k => `${k.name} (${k.level})`).join(', ')}
-- Roles: ${matchProfile.roles.join(', ')}
-- Looking for: ${matchProfile.lookingFor.join(', ')}
-
-Based on their shared interests, potential dynamics, and overall vibe, calculate a compatibility score and provide the rationale.
-`;
+export const getGeminiCompatibilityScore = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<{ score: number; summary: string; } | null> => {
     try {
+        const prompt = `
+Analyze the compatibility between these two dating app users for a BDSM and kink-focused app called Inferno.
+Provide a compatibility score from 0 to 100 and a very short, one-sentence summary of their compatibility.
+
+User 1:
+${profileToText(userProfile)}
+
+User 2:
+${profileToText(matchProfile)}
+
+Based on their kinks, roles, what they are looking for, and general bio, determine how compatible they are.
+A high score means they have very compatible interests and relationship goals. A low score means they are likely a poor match.
+Focus on shared kinks, complementary roles (e.g., Dominant and Submissive), and similar relationship intentions.
+`;
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                score: { type: Type.NUMBER, description: "A compatibility score from 0 to 100." },
+                summary: { type: Type.STRING, description: "A one-sentence summary of their compatibility." },
+            },
+            required: ["score", "summary"],
+        };
+
         const response = await ai.models.generateContent({
-            model,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            model: model,
+            contents: [{ parts: [{ text: prompt }] }],
             config: {
                 responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        score: { type: Type.NUMBER, description: "Compatibility score from 0 to 100" },
-                        rationale: { type: Type.STRING, description: "A short, flirty rationale for the match." }
-                    },
-                    required: ['score', 'rationale']
-                },
-            }
+                responseSchema,
+                temperature: 0.5,
+            },
         });
 
-        const jsonText = response.text.trim();
-        const data = JSON.parse(jsonText);
-        if (typeof data.score === 'number' && typeof data.rationale === 'string') {
-            return data;
-        }
-        return null;
-    } catch (e) {
-        console.error("Error getting compatibility score from Gemini:", e);
+        const jsonString = response.text.trim();
+        const data = JSON.parse(jsonString);
+        
+        return { score: data.score, summary: data.summary };
+
+    } catch (error) {
+        console.error("Error getting Gemini compatibility score:", error);
         return null;
     }
 };
 
 export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promise<string> => {
     try {
+        const systemInstruction = generatePersonaSystemInstruction(matchProfile);
+        const prompt = "Write a short, flirty opening message to send to a new match. Make it intriguing.";
+
         const response = await ai.models.generateContent({
-            model,
-            contents: [{ role: 'user', parts: [{ text: "Start our conversation with a flirty and engaging opening message." }] }],
+            model: model,
+            contents: [{ parts: [{ text: prompt }] }],
             config: {
-                systemInstruction: generatePersonaSystemInstruction(matchProfile),
+                systemInstruction: systemInstruction,
+                temperature: 0.9,
             },
         });
+
         return response.text.trim();
-    } catch (e) {
-        console.error("Error getting initial message from Gemini:", e);
-        return `Hey there 😉 I saw your profile and couldn't resist saying hi. You seem... intriguing.`;
+    } catch (error) {
+        console.error("Error getting Gemini initial message:", error);
+        return `Hey there 😉`; // Fallback message
+    }
+};
+
+const chatHistoryToContents = (messages: ChatMessage[]): Content[] => {
+    // Filter out system messages that are not for the model
+    return messages
+        .filter(msg => msg.id.startsWith('user-') || msg.id.startsWith('ai-'))
+        .map(msg => {
+            const role = msg.sender === 'user' ? 'user' : 'model';
+            // ChatScreen.tsx seems to create a 'text' property even for media messages
+            return { role, parts: [{ text: msg.text || '' }] };
+    });
+};
+
+export const getGeminiChatResponse = async (messages: ChatMessage[], matchProfile: UserProfile): Promise<string> => {
+    try {
+        const systemInstruction = generatePersonaSystemInstruction(matchProfile);
+        const contents = chatHistoryToContents(messages);
+        
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: contents,
+            config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.9,
+                // Add a stop sequence to prevent rambling
+                stopSequences: ["\n\n"],
+            }
+        });
+
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error getting Gemini chat response:", error);
+        return "Sorry, my mind went blank for a moment... what were we talking about? 😉";
     }
 };
 
 export const getGeminiIcebreaker = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
-    const prompt = `
-You are a witty and flirty dating assistant for a user named ${userProfile.name}.
-Your task is to generate a single, clever icebreaker message for ${userProfile.name} to send to their match, ${matchProfile.name}.
-The icebreaker should be based on their profiles and be intriguing enough to get a response. Keep it short and conversational. Do not include any greeting like "Hey" or "Hi". Just provide the message itself.
+    try {
+        const prompt = `
+You are a dating coach for an NSFW-friendly dating app called Inferno.
+Your client is about to message a new match.
+Based on their profiles, suggest a single, clever, and flirty icebreaker message for your client to send.
+The icebreaker should be a question or a playful observation that invites a response.
+Keep it short and witty. Do not include any intro like "Here's a suggestion:". Just provide the message.
 
-User's Profile (${userProfile.name}):
-- Kinks: ${userProfile.kinks.map(k => k.name).join(', ')}
-- Looking for: ${userProfile.lookingFor.join(', ')}
+Your Client's Profile:
+${profileToText(userProfile)}
 
-Match's Profile (${matchProfile.name}):
-- Bio: ${matchProfile.bio}
-- Kinks: ${matchProfile.kinks.map(k => k.name).join(', ')}
+Their Match's Profile:
+${profileToText(matchProfile)}
 
-Generate one icebreaker suggestion.
+Generate one icebreaker message:
 `;
-    try {
-        const response = await ai.models.generateContent({
-            model,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        });
-        return response.text.trim().replace(/"/g, ''); // Remove quotes if the model adds them
-    } catch (e) {
-        console.error("Error getting icebreaker from Gemini:", e);
-        return `I noticed you're into ${matchProfile.kinks[0]?.name || 'adventure'}. Tell me more...`;
-    }
-};
 
-export const getGeminiChatResponse = async (history: ChatMessage[], matchProfile: UserProfile): Promise<string> => {
-    try {
-        const contents = buildHistory(history);
         const response = await ai.models.generateContent({
-            model,
-            contents: contents,
+            model: model,
+            contents: [{ parts: [{ text: prompt }] }],
             config: {
-                systemInstruction: generatePersonaSystemInstruction(matchProfile),
+                temperature: 1.0, // more creative
             },
         });
-        return response.text.trim();
-    } catch (e) {
-        console.error("Error getting chat response from Gemini:", e);
-        return "I'm not sure what to say to that, but I'm definitely interested in hearing more about you.";
+
+        return response.text.trim().replace(/^"|"$/g, ''); // Remove quotes if any
+    } catch (error) {
+        console.error("Error getting Gemini icebreaker:", error);
+        return "I was going to write something clever, but your profile made me forget my pickup line."; // Fallback
     }
 };
 
-export const getGeminiFantasyResponse = async (history: ChatMessage[], scenario: string, userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
+export const getGeminiFantasyResponse = async (messages: ChatMessage[], scenario: string, userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
     try {
-        const contents = buildHistory(history);
         const systemInstruction = getFantasySystemInstruction(scenario, userProfile.name, matchProfile.name);
+        // Filter out the initial system message about fantasy mode starting
+        const history = messages.filter(msg => !msg.id.startsWith('system-'));
+        const contents = chatHistoryToContents(history);
+        
         const response = await ai.models.generateContent({
-            model,
+            model: model,
             contents: contents,
             config: {
                 systemInstruction: systemInstruction,
-            },
+                temperature: 0.8,
+            }
         });
+
         return response.text.trim();
-    } catch (e) {
-        console.error("Error getting fantasy response from Gemini:", e);
-        return "My mind is racing with possibilities... what do you do next?";
+    } catch (error) {
+        console.error("Error getting Gemini fantasy response:", error);
+        return "*(OOC: The connection seems to have flickered for a moment. Where were we? Let's continue the story...)*";
     }
 };
 
-export const getSafetyArticleContent = async (topic: string): Promise<string> => {
-    const prompt = `
-Generate a concise, informative, and easy-to-understand article for a dating app's Safety Center.
-The app is called Inferno and is for adults interested in kink and alternative lifestyles.
-The tone should be helpful, non-judgmental, and empowering.
-The topic is: "${topic}".
-
-Provide the content as plain text. Use paragraphs for readability. Do not use markdown.
-`;
+export const getSafetyArticleContent = async (title: string): Promise<string> => {
     try {
+        const prompt = `
+You are a safety advisor for an NSFW-friendly, BDSM & kink dating app called Inferno.
+Write a helpful and non-judgmental article for users on the topic of "${title}".
+The tone should be informative, empowering, and sex-positive.
+Focus on practical advice, communication, and setting boundaries.
+Use clear paragraphs separated by newlines. You can use hyphens (-) for lists.
+Do not include a title in the response, as it's already provided. Start directly with the content.
+Do not use markdown formatting like #, ##, or **.
+`;
+        
         const response = await ai.models.generateContent({
-            model,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            model: model,
+            contents: [{ parts: [{ text: prompt }] }],
+            config: {
+                temperature: 0.6,
+            }
         });
+
         return response.text.trim();
-    } catch (e) {
-        console.error(`Error getting safety article for "${topic}":`, e);
-        return `We're sorry, we couldn't load this article at the moment. The core principle of "${topic}" is clear communication and mutual respect. Always prioritize your safety and the safety of your partners.`;
+
+    } catch (error) {
+        console.error("Error getting Gemini safety article:", error);
+        return "We're currently updating our safety resources. Please check back later.";
     }
 };

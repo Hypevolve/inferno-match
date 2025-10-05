@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BackIcon, CheckIcon } from './Icons';
 
 interface VerificationScreenProps {
@@ -20,6 +20,34 @@ const steps: { [key in VerificationStep]: { instruction: string; duration: numbe
 const VerificationScreen: React.FC<VerificationScreenProps> = ({ onComplete, onBack }) => {
     const [step, setStep] = useState<VerificationStep>('start');
     const [progress, setProgress] = useState(0);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    // Effect to start and stop camera
+    useEffect(() => {
+        const startCamera = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                streamRef.current = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (err) {
+                console.error("Camera access denied:", err);
+                alert("Camera access is required for verification. Please enable it in your browser settings.");
+                onBack();
+            }
+        };
+
+        startCamera();
+
+        // Cleanup function to stop the camera stream
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [onBack]);
 
     useEffect(() => {
         const stepOrder: VerificationStep[] = ['start', 'turnLeft', 'turnRight', 'smile', 'done'];
@@ -65,9 +93,13 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({ onComplete, onB
 
             <div className="flex-grow flex flex-col items-center justify-center text-center">
                 <div className="relative w-64 h-80 border-4 border-brand-primary rounded-2xl bg-black overflow-hidden mb-6">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                         <p className="text-brand-text-dark">Camera feed placeholder</p>
-                    </div>
+                    <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted
+                        className="w-full h-full object-cover scale-x-[-1]" // Mirrored for user-facing camera
+                    />
                     {/* Ellipse overlay */}
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 256 320" preserveAspectRatio="none">
                         <ellipse cx="128" cy="160" rx="100" ry="140" fill="none" stroke="white" strokeWidth="4" strokeDasharray="10 5" />
