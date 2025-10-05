@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Kink, ProfilePrompt, AudioPrompt } from '../types';
 import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
@@ -45,7 +44,8 @@ const processImage = (file: File): Promise<File> => {
 
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('d');
+        // Fix: Changed getContext('d') to getContext('2d') to get the correct 2D rendering context.
+        const ctx = canvas.getContext('2d');
         if (!ctx) {
           return reject(new Error('Could not get canvas context'));
         }
