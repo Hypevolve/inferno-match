@@ -8,9 +8,11 @@ interface SpotlightScreenProps {
   profiles: UserProfile[];
   onSuperLike: (profile: UserProfile) => void;
   onPass: (profile: UserProfile) => void;
+  // Fix: Add missing prop to interface.
+  onRequestVaultAccess: (profileId: string) => void;
 }
 
-const SpotlightScreen: React.FC<SpotlightScreenProps> = ({ profiles, onSuperLike, onPass }) => {
+const SpotlightScreen: React.FC<SpotlightScreenProps> = ({ profiles, onSuperLike, onPass, onRequestVaultAccess }) => {
   return (
     <div className="flex flex-col h-full bg-brand-bg">
       <header className="p-4 sticky top-0 bg-brand-bg/80 backdrop-blur-sm z-10 text-center">

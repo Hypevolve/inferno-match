@@ -17,7 +17,6 @@ import VerificationScreen from './components/VerificationScreen';
 import SafetyCenterScreen from './components/SafetyCenterScreen';
 import SpotlightScreen from './components/SpotlightScreen';
 import { generateMatches } from './services/matchService';
-import { getGeminiCompatibilityScore } from './services/geminiService';
 import { haversineDistance } from './helpers/geolocation';
 
 const App: React.FC = () => {
@@ -30,6 +29,7 @@ const App: React.FC = () => {
   const [isQueueLoading, setIsQueueLoading] = useState<boolean>(true);
   const [matches, setMatches] = useState<UserProfile[]>([]);
   const [likers, setLikers] = useState<UserProfile[]>([]);
+  const [vaultRequests, setVaultRequests] = useState<UserProfile[]>([]);
   const [newLikesCount, setNewLikesCount] = useState<number>(0);
   
   const [activeChatMatch, setActiveChatMatch] = useState<UserProfile | null>(null);
@@ -59,33 +59,27 @@ const App: React.FC = () => {
     return matchQueue.filter(profile => {
       const { ageRange, lookingFor, kinks, roles, verifiedOnly, distance, heightRange, relationshipTypes, dealbreakers } = filterSettings;
       
-      // Age
       if (profile.age < ageRange.min || profile.age > ageRange.max) {
         if (dealbreakers.ageRange) return false;
       }
       
-      // Verified
       if (verifiedOnly && !profile.isVerified) return false;
       
-      // Distance
-      if (distance < 250) { // 250 is global
+      if (distance < 250) {
         const dist = haversineDistance(userProfile.location, profile.location);
         if (dist > distance) {
           if (dealbreakers.distance) return false;
         }
       }
       
-      // Height
       if (profile.height < heightRange.min || profile.height > heightRange.max) {
          if (dealbreakers.heightRange) return false;
       }
 
-      // Relationship Type
       if (relationshipTypes.length > 0 && !relationshipTypes.includes(profile.relationshipType)) {
         if (dealbreakers.relationshipTypes) return false;
       }
 
-      // Tags (not treated as dealbreakers for this example)
       if (lookingFor.length > 0 && !lookingFor.some(tag => profile.lookingFor.includes(tag))) return false;
       if (roles.length > 0 && !roles.some(role => profile.roles.includes(role))) return false;
       if (kinks.length > 0 && !kinks.some(kinkFilter => profile.kinks.some(k => k.name === kinkFilter))) return false;
@@ -105,25 +99,6 @@ const App: React.FC = () => {
     );
   }, [filterSettings]);
 
-  const calculateAndSetCompatibilityScores = useCallback((newProfiles: UserProfile[]) => {
-    if (!userProfile) return;
-    const processQueue = async () => {
-        for (const profile of newProfiles) {
-            try {
-                const scoreData = await getGeminiCompatibilityScore(userProfile, profile);
-                if (scoreData) {
-                    setMatchQueue(prev => prev.map(p => p.id === profile.id ? { ...p, compatibilityScore: scoreData } : p));
-                    setSpotlightQueue(prev => prev.map(p => p.id === profile.id ? { ...p, compatibilityScore: scoreData } : p));
-                }
-            } catch (error) {
-                console.error(`Error getting compatibility score for ${profile.id}:`, error);
-            }
-            await new Promise(resolve => setTimeout(resolve, 1500)); 
-        }
-    };
-    processQueue();
-  }, [userProfile]);
-
   const loadMoreMatches = useCallback(() => {
     setIsQueueLoading(true);
     setTimeout(() => {
@@ -135,11 +110,8 @@ const App: React.FC = () => {
         setSpotlightQueue(prev => [...prev, ...newSpotlight]);
 
         setIsQueueLoading(false);
-        if (userProfile) {
-          calculateAndSetCompatibilityScores(newProfiles);
-        }
     }, 500);
-  }, [userProfile, calculateAndSetCompatibilityScores]);
+  }, []);
 
   useEffect(() => {
     if (userProfile && matchQueue.length < 5) {
@@ -155,7 +127,12 @@ const App: React.FC = () => {
             setLikers(prev => [newLiker, ...prev]);
             setNewLikesCount(prev => prev + 1);
         }
-    }, 5000);
+        // Simulate vault requests
+        if(Math.random() < 0.15) {
+          const newRequester = generateMatches(1)[0];
+          setVaultRequests(prev => [newRequester, ...prev]);
+        }
+    }, 7000);
     return () => clearInterval(interval);
   }, [userProfile]);
 
@@ -165,7 +142,7 @@ const App: React.FC = () => {
   };
 
   const handleProfileCreated = (profile: UserProfile) => {
-    setUserProfile({ ...profile, location: { lat: 37.7749, lon: -122.4194 } }); // Set static location for user
+    setUserProfile({ ...profile, location: { lat: 37.7749, lon: -122.4194 } });
     setCurrentScreen(Screen.SWIPE);
   };
   
@@ -205,7 +182,7 @@ const App: React.FC = () => {
   };
 
   const handleRewind = () => {
-    if (lastPassedProfile && !lastPassedProfile.isSpotlight) { // Can't rewind spotlight for now
+    if (lastPassedProfile && !lastPassedProfile.isSpotlight) {
       setMatchQueue(prev => [lastPassedProfile, ...prev]);
       setLastPassedProfile(null);
     }
@@ -224,6 +201,35 @@ const App: React.FC = () => {
       setLastMatchWasSuperLike(false);
       setCurrentScreen(Screen.SWIPE);
   };
+
+  const handleRequestVaultAccess = (profileId: string) => {
+    if (!userProfile) return;
+    // In a real app, this would be a network request. Here, we just log it.
+    console.log(`User ${userProfile.id} requested vault access for ${profileId}`);
+    alert(`Vault access requested!`);
+  };
+
+  const handleGrantVaultAccess = (requesterId: string) => {
+    if (!userProfile) return;
+    // Add our user's ID to the requester's 'vaultAccessGrantedTo' list
+    // This is a simulation. In a real app, you'd update a central DB.
+    // For this demo, we'll update our local copies of the profiles.
+    const updateUserInQueues = (profile: UserProfile) => {
+      if (profile.id === requesterId) {
+        return {
+          ...profile,
+          vaultAccessGrantedTo: [...profile.vaultAccessGrantedTo, userProfile.id]
+        };
+      }
+      return profile;
+    };
+    setMatchQueue(prev => prev.map(updateUserInQueues));
+    setSpotlightQueue(prev => prev.map(updateUserInQueues));
+    setMatches(prev => prev.map(updateUserInQueues));
+    setLikers(prev => prev.map(updateUserInQueues));
+    setVaultRequests(prev => prev.filter(p => p.id !== requesterId));
+  };
+
 
   const handleNavigate = (screen: Screen) => {
     if (screen === Screen.LIKES_YOU) setNewLikesCount(0);
@@ -278,6 +284,7 @@ const App: React.FC = () => {
             canRewind={!!lastPassedProfile && !lastPassedProfile.isSpotlight}
             onBoost={handleBoost} isBoostActive={isBoostActive} boostEndTime={boostEndTime}
             onOpenFilters={() => setCurrentScreen(Screen.FILTER)} areFiltersActive={areFiltersActive}
+            onRequestVaultAccess={handleRequestVaultAccess}
         />;
       case Screen.MATCHES: return <MatchesScreen matches={matches} onChat={handleStartChat} />;
       case Screen.PROFILE: return userProfile && <UserProfileScreen 
@@ -291,12 +298,18 @@ const App: React.FC = () => {
       case Screen.VIDEO_CALL: return userProfile && activeVideoCallMatch && <VideoCallScreen
             userProfile={userProfile} matchProfile={activeVideoCallMatch} onEndCall={handleEndVideoCall}
         />;
-      case Screen.LIKES_YOU: return <LikesYouScreen likers={likers} onInstantMatch={handleInstantMatch} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)} />;
+      case Screen.LIKES_YOU: return <LikesYouScreen 
+            likers={likers} vaultRequests={vaultRequests} onInstantMatch={handleInstantMatch}
+            onGrantVaultAccess={handleGrantVaultAccess} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)} 
+        />;
       case Screen.FILTER: return <FilterScreen currentSettings={filterSettings} onSave={handleSaveFilters} onBack={() => setCurrentScreen(Screen.SWIPE)} />;
       case Screen.PRODUCT_PLAN: return <ProductPlanScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
       case Screen.VERIFICATION: return <VerificationScreen onComplete={handleVerificationComplete} onBack={() => setCurrentScreen(Screen.PROFILE)} />;
       case Screen.SAFETY_CENTER: return <SafetyCenterScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
-      case Screen.SPOTLIGHT: return userProfile && <SpotlightScreen profiles={spotlightQueue} onSuperLike={handleSuperLike} onPass={handlePass} />;
+      case Screen.SPOTLIGHT: return userProfile && <SpotlightScreen 
+            profiles={spotlightQueue} onSuperLike={handleSuperLike}
+            onPass={handlePass} onRequestVaultAccess={handleRequestVaultAccess}
+        />;
       default: return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
     }
   };

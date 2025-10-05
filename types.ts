@@ -25,7 +25,11 @@ export interface UserProfile {
   kinks: Kink[];
   roles: string[];
   lookingFor: string[];
-  imageUrl: string;
+  imageUrl: string; // Main profile picture
+  publicAlbum: string[]; // Additional public photos
+  privateVault: string[]; // Private photos
+  vaultAccessRequestsFrom: string[]; // Array of user IDs who requested access
+  vaultAccessGrantedTo: string[]; // Array of user IDs who have access
   videoUrl?: string;
   textPrompts: ProfilePrompt[];
   audioPrompts: AudioPrompt[];
@@ -47,7 +51,7 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   timestamp: number;
   status?: 'sent' | 'read';
-  type: 'text' | 'audio' | 'gif' | 'photo' | 'video';
+  type: 'text' | 'audio' | 'gif' | 'photo' | 'video' | 'system' | 'game' | 'scenario';
   audioUrl?: string; 
   gifUrl?: string;
   imageUrl?: string;
@@ -56,6 +60,8 @@ export interface ChatMessage {
   hasBeenViewed?: boolean;
   duration?: number; // in seconds for audio/video
   reactions?: { [emoji: string]: string[] }; // e.g. { '🔥': ['user'] }
+  gameInfo?: { type: 'invite' | 'prompt' | 'result'; text: string; level?: 'Flirty' | 'Spicy' | 'Inferno' };
+  scenarioInfo?: { title: string; text: string };
 }
 
 export enum Screen {

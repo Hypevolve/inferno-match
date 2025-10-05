@@ -71,3 +71,43 @@ export const ICEBREAKER_QUESTIONS = [
     "Tell me about a fantasy you've always had.",
     "What's the naughtiest thing you've done in public?",
 ];
+
+export const KISS_AND_TELL_PROMPTS = {
+  Flirty: [
+    "Truth: What's a secret turn-on you have?",
+    "Truth: What's the most romantic thing someone's ever done for you?",
+    "Dare: Send me your favorite flirty emoji.",
+    "Dare: Give me a compliment.",
+  ],
+  Spicy: [
+    "Truth: What's the naughtiest thought you've had today?",
+    "Truth: Describe your ideal first touch.",
+    "Dare: Describe your favorite piece of lingerie or fetishwear.",
+    "Dare: Whisper a secret to me in a voice message.",
+  ],
+  Inferno: [
+    "Truth: What's a fantasy you've never told anyone?",
+    "Truth: What's the most 'forbidden' thing you want to try?",
+    "Dare: Send a picture of your neck and collarbone.",
+    "Dare: Blindfold yourself for the next 5 minutes of our chat.",
+  ],
+};
+
+export const SCENARIO_STARTERS = [
+    {
+        title: "The Masquerade Ball",
+        text: "The music swells in the grand ballroom, a sea of ornate masks and whispered secrets. Our eyes meet across the crowded floor. I raise my glass to you, a silent invitation, and begin to walk toward you through the throng of dancers... Your move."
+    },
+    {
+        title: "The Interrogation Room",
+        text: "The single bulb above the cold, metal table flickers. You're here because you know something, and I'm the one who's going to get it out of you. I slide the file across the table, my gaze never leaving yours. 'Let's start from the beginning,' I say, my voice low. 'And don't leave anything out.'..."
+    },
+    {
+        title: "Stranded Together",
+        text: "The storm came out of nowhere, and now we're the only two people in this old, creaky cabin as the rain lashes against the windows. The power is out, the fire is crackling, and we have nothing but a bottle of whiskey and time to kill... What do you do first?"
+    },
+    {
+        title: "The Forbidden Library",
+        text: "We're in the restricted section, long after closing time. The air is thick with the smell of old parchment and secrets. I pull a heavy, leather-bound book from the shelf, its pages rumored to contain spells of desire. I run a finger over the strange symbols. 'I wonder if this works,' I whisper, looking at you..."
+    }
+];

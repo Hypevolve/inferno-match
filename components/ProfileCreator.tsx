@@ -45,7 +45,7 @@ const processImage = (file: File): Promise<File> => {
 
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('d');
         if (!ctx) {
           return reject(new Error('Could not get canvas context'));
         }
@@ -175,6 +175,7 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
         }
     }
 
+    // Fix: Add missing properties to conform to UserProfile type.
     const newProfile: UserProfile = {
       id: profileToEdit?.id || `user-${Date.now()}`,
       name,
@@ -186,6 +187,10 @@ const ProfileCreator: React.FC<ProfileCreatorProps> = ({ onProfileCreated, profi
       roles,
       lookingFor: selectedLookingFor,
       imageUrl,
+      publicAlbum: profileToEdit?.publicAlbum || [],
+      privateVault: profileToEdit?.privateVault || [],
+      vaultAccessRequestsFrom: profileToEdit?.vaultAccessRequestsFrom || [],
+      vaultAccessGrantedTo: profileToEdit?.vaultAccessGrantedTo || [],
       videoUrl,
       textPrompts,
       audioPrompts,

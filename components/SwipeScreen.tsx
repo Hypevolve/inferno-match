@@ -18,6 +18,8 @@ interface SwipeScreenProps {
   boostEndTime: number | null;
   onOpenFilters: () => void;
   areFiltersActive: boolean;
+  // Fix: Add missing prop to interface.
+  onRequestVaultAccess: (profileId: string) => void;
 }
 
 const BoostTimer: React.FC<{ endTime: number | null }> = ({ endTime }) => {
@@ -75,7 +77,7 @@ const ProfileCardSkeleton: React.FC = () => (
 const SwipeScreen: React.FC<SwipeScreenProps> = ({ 
     userProfile, currentProfile, isLoading, onLike, onPass, onSuperLike, 
     onRewind, canRewind, onBoost, isBoostActive, boostEndTime,
-    onOpenFilters, areFiltersActive 
+    onOpenFilters, areFiltersActive, onRequestVaultAccess
 }) => {
     
     const [action, setAction] = useState<'idle' | 'like' | 'pass' | 'superlike'>('idle');

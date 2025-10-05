@@ -49,6 +49,7 @@ export const generateMatches = (count: number = 10): UserProfile[] => {
         level: KINK_EXPERIENCE_LEVELS[Math.floor(Math.random() * KINK_EXPERIENCE_LEVELS.length)]
     }));
 
+    // Fix: Add missing properties to conform to UserProfile type.
     matches.push({
       id,
       name,
@@ -58,6 +59,10 @@ export const generateMatches = (count: number = 10): UserProfile[] => {
       roles: getRandomSubset(ROLE_OPTIONS, Math.floor(Math.random() * 3) + 1),
       lookingFor: getRandomSubset(LOOKING_FOR_OPTIONS, Math.floor(Math.random() * 2) + 1),
       imageUrl: `https://picsum.photos/seed/${id}/400/600`,
+      publicAlbum: [`https://picsum.photos/seed/${id}-1/400/600`, `https://picsum.photos/seed/${id}-2/400/600`],
+      privateVault: Math.random() > 0.5 ? [`https://picsum.photos/seed/${id}-p1/400/600`] : [],
+      vaultAccessRequestsFrom: [],
+      vaultAccessGrantedTo: [],
       videoUrl: Math.random() < 0.2 ? `https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4` : undefined,
       textPrompts: getRandomSubset(PROFILE_PROMPTS, Math.floor(Math.random() * 2) + 1).map(q => ({
         question: q,
