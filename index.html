@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inferno</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-bg': '#110F17', // Velvet Night
+              'brand-surface': '#1C1924',
+              'brand-surface-light': '#282531',
+              'brand-primary': '#E4007C', // Electric Fuchsia
+              'brand-secondary': '#8A2BE2', // Deep Purple (for Boost)
+              'brand-accent': '#FFC700', // Rich Gold (for Super Like)
+              'brand-text-light': '#F0F0F0',
+              'brand-text-dark': '#A0A0A0',
+            },
+            backgroundImage: {
+              'brand-gradient': 'linear-gradient(to right, #FF3B91, #E4007C)',
+            },
+          },
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          },
+        },
+      }
+    </script>
+  <style>
+      @keyframes pulse-ring {
+        0% {
+          box-shadow: 0 0 0 0px rgba(228, 0, 124, 0.7);
+        }
+        100% {
+          box-shadow: 0 0 0 20px rgba(228, 0, 124, 0);
+        }
+      }
+      .speaking-pulse {
+        animation: pulse-ring 1.5s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
+      }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-brand-bg">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
