@@ -1,6 +1,7 @@
 
+
 import React from 'react';
-import { FlameIcon } from './Icons';
+import { FlameIcon } from './Icons.tsx';
 
 interface OnboardingWelcomeScreenProps {
   onStart: () => void;

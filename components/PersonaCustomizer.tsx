@@ -1,8 +1,9 @@
 
+
 import React, { useState, useRef } from 'react';
-import { Kink, KinkLevel, ProfilePrompt, AudioPrompt } from '../types';
-import { KINK_OPTIONS, ROLE_OPTIONS, PROFILE_PROMPTS, KINK_EXPERIENCE_LEVELS } from '../constants';
-import { MicIcon, PlayIcon, PauseIcon, XIcon } from './Icons';
+import { Kink, KinkLevel, ProfilePrompt, AudioPrompt } from '../types.ts';
+import { KINK_OPTIONS, ROLE_OPTIONS, PROFILE_PROMPTS, KINK_EXPERIENCE_LEVELS } from '../constants.ts';
+import { MicIcon, PlayIcon, PauseIcon, XIcon } from './Icons.tsx';
 
 interface PersonaCustomizerProps {
   kinks: Kink[];

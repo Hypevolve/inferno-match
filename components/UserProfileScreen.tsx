@@ -1,9 +1,10 @@
 
 
+
 import React, { useMemo, useRef, useState } from 'react';
-import { UserProfile, KinkLevel } from '../types';
-import { VerifiedIcon, DiamondIcon, PhotoIcon, LockIcon, StarIcon, XIcon } from './Icons';
-import { processImage, fileToDataUri } from '../helpers/imageProcessing';
+import { UserProfile, KinkLevel } from '../types.ts';
+import { VerifiedIcon, DiamondIcon, PhotoIcon, LockIcon, StarIcon, XIcon } from './Icons.tsx';
+import { processImage, fileToDataUri } from '../helpers/imageProcessing.ts';
 
 interface UserProfileScreenProps {
     userProfile: UserProfile;

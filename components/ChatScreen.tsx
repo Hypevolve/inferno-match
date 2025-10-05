@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { UserProfile, ChatMessage } from '../types';
-import { BackIcon, CheckIcon, DoubleCheckIcon, VideoIcon, MicIcon, FlameIcon, XIcon } from './Icons';
-import AudioMessageBubble from './AudioMessageBubble';
-import { getGeminiChatResponse, getGeminiInitialMessage, getGeminiIcebreaker, getGeminiFantasyResponse } from '../services/geminiService';
-import { GIFS } from '../constants';
+import { UserProfile, ChatMessage } from '../types.ts';
+import { BackIcon, CheckIcon, DoubleCheckIcon, VideoIcon, MicIcon, FlameIcon, XIcon } from './Icons.tsx';
+import AudioMessageBubble from './AudioMessageBubble.tsx';
+import { getGeminiChatResponse, getGeminiInitialMessage, getGeminiIcebreaker, getGeminiFantasyResponse } from '../services/geminiService.ts';
+import { GIFS } from '../constants.ts';
 
 interface ChatScreenProps {
   userProfile: UserProfile;

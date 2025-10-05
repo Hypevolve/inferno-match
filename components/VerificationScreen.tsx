@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { BackIcon, CheckIcon } from './Icons';
+import { BackIcon, CheckIcon } from './Icons.tsx';
 
 interface VerificationScreenProps {
     onComplete: () => void;

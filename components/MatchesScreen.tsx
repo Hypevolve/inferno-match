@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo } from 'react';
-import { UserProfile } from '../types';
+import { UserProfile } from '../types.ts';
 
 interface MatchesScreenProps {
   matches: UserProfile[];

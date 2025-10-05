@@ -1,8 +1,9 @@
 
+
 import React from 'react';
-import { UserProfile } from '../types';
-import ProfileCard from './ProfileCard';
-import { StarIcon, XIcon, SparklesIcon } from './Icons';
+import { UserProfile } from '../types.ts';
+import ProfileCard from './ProfileCard.tsx';
+import { StarIcon, XIcon, SparklesIcon } from './Icons.tsx';
 
 interface SpotlightScreenProps {
   profiles: UserProfile[];

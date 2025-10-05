@@ -1,7 +1,8 @@
 
+
 import React from 'react';
-import { UserProfile } from '../types';
-import { DiamondIcon } from './Icons';
+import { UserProfile } from '../types.ts';
+import { DiamondIcon } from './Icons.tsx';
 
 interface LikesYouScreenProps {
   likers: UserProfile[];

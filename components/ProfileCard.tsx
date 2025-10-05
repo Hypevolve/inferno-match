@@ -1,7 +1,8 @@
 
+
 import React from 'react';
-import { UserProfile, KinkLevel } from '../types';
-import { VerifiedIcon, PlayIcon } from './Icons';
+import { UserProfile, KinkLevel } from '../types.ts';
+import { VerifiedIcon, PlayIcon } from './Icons.tsx';
 
 interface ProfileCardProps {
   profile: UserProfile;

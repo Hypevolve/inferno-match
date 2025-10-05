@@ -1,7 +1,8 @@
 
 
+
 import { GoogleGenAI, Content, Part } from "@google/genai";
-import { UserProfile, ChatMessage } from '../types';
+import { UserProfile, ChatMessage } from '../types.ts';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 const model = 'gemini-2.5-flash';

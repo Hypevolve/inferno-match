@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile } from '../types';
-import { PhoneHangUpIcon, MicOnIcon, MicOffIcon, VideoOnIcon, VideoOffIcon } from './Icons';
-import { ICEBREAKER_QUESTIONS } from '../constants';
+import { UserProfile } from '../types.ts';
+import { PhoneHangUpIcon, MicOnIcon, MicOffIcon, VideoOnIcon, VideoOffIcon } from './Icons.tsx';
+import { ICEBREAKER_QUESTIONS } from '../constants.ts';
 
 interface VideoCallScreenProps {
   userProfile: UserProfile;

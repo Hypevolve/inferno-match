@@ -2,28 +2,29 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { UserProfile, Screen, FilterSettings } from './types';
-import AgeGate from './components/AgeGate';
-import OnboardingWelcomeScreen from './components/OnboardingWelcomeScreen';
-import ProfileCreator from './components/ProfileCreator';
-import SwipeScreen from './components/SwipeScreen';
-import ChatScreen from './components/ChatScreen';
-import MatchesScreen from './components/MatchesScreen';
-import UserProfileScreen from './components/UserProfileScreen';
-import ItsAMatchScreen from './components/ItsAMatchScreen';
-import VideoCallScreen from './components/VideoCallScreen';
-import BottomNav from './components/BottomNav';
-import SideNav from './components/SideNav';
-import LikesYouScreen from './components/LikesYouScreen';
-import FilterScreen from './components/FilterScreen';
-import ProductPlanScreen from './components/ProductPlanScreen';
-import VerificationScreen from './components/VerificationScreen';
-import SafetyCenterScreen from './components/SafetyCenterScreen';
-import SpotlightScreen from './components/SpotlightScreen';
-import { generateMatches } from './services/matchService';
-import { haversineDistance } from './helpers/geolocation';
-import { MatchesIcon } from './components/Icons';
+import { UserProfile, Screen, FilterSettings } from './types.ts';
+import AgeGate from './components/AgeGate.tsx';
+import OnboardingWelcomeScreen from './components/OnboardingWelcomeScreen.tsx';
+import ProfileCreator from './components/ProfileCreator.tsx';
+import SwipeScreen from './components/SwipeScreen.tsx';
+import ChatScreen from './components/ChatScreen.tsx';
+import MatchesScreen from './components/MatchesScreen.tsx';
+import UserProfileScreen from './components/UserProfileScreen.tsx';
+import ItsAMatchScreen from './components/ItsAMatchScreen.tsx';
+import VideoCallScreen from './components/VideoCallScreen.tsx';
+import BottomNav from './components/BottomNav.tsx';
+import SideNav from './components/SideNav.tsx';
+import LikesYouScreen from './components/LikesYouScreen.tsx';
+import FilterScreen from './components/FilterScreen.tsx';
+import ProductPlanScreen from './components/ProductPlanScreen.tsx';
+import VerificationScreen from './components/VerificationScreen.tsx';
+import SafetyCenterScreen from './components/SafetyCenterScreen.tsx';
+import SpotlightScreen from './components/SpotlightScreen.tsx';
+import { generateMatches } from './services/matchService.ts';
+import { haversineDistance } from './helpers/geolocation.ts';
+import { MatchesIcon } from './components/Icons.tsx';
 
 const App: React.FC = () => {
   const [isAgeVerified, setIsAgeVerified] = useState<boolean>(false);

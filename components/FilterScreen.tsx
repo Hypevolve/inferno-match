@@ -1,8 +1,9 @@
 
+
 import React, { useState } from 'react';
-import { FilterSettings } from '../types';
-import { BackIcon } from './Icons';
-import { LOOKING_FOR_OPTIONS, KINK_OPTIONS, ROLE_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
+import { FilterSettings } from '../types.ts';
+import { BackIcon } from './Icons.tsx';
+import { LOOKING_FOR_OPTIONS, KINK_OPTIONS, ROLE_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants.ts';
 
 interface FilterScreenProps {
     currentSettings: FilterSettings;

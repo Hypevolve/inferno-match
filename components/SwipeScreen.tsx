@@ -1,9 +1,10 @@
 
 
+
 import React, { useState, useEffect } from 'react';
-import { UserProfile } from '../types';
-import ProfileCard from './ProfileCard';
-import { RewindIcon, XIcon, StarIcon, HeartIcon, BoostIcon, FlameIcon, FilterIcon } from './Icons';
+import { UserProfile } from '../types.ts';
+import ProfileCard from './ProfileCard.tsx';
+import { RewindIcon, XIcon, StarIcon, HeartIcon, BoostIcon, FlameIcon, FilterIcon } from './Icons.tsx';
 
 interface SwipeScreenProps {
   currentProfile: UserProfile;

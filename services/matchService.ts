@@ -1,6 +1,7 @@
 
-import { UserProfile, ProfilePrompt, Kink, KinkLevel } from '../types';
-import { PROFILE_PROMPTS, LOOKING_FOR_OPTIONS, KINK_OPTIONS, ROLE_OPTIONS, KINK_EXPERIENCE_LEVELS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
+
+import { UserProfile, ProfilePrompt, Kink, KinkLevel } from '../types.ts';
+import { PROFILE_PROMPTS, LOOKING_FOR_OPTIONS, KINK_OPTIONS, ROLE_OPTIONS, KINK_EXPERIENCE_LEVELS, RELATIONSHIP_TYPE_OPTIONS } from '../constants.ts';
 
 const NAMES = ['Sophia', 'Liam', 'Olivia', 'Noah', 'Ava', 'Elijah', 'Mia', 'James', 'Chloe', 'Lucas', 'Isabella', 'Mason', 'Zoe', 'Logan', 'Aria', 'Ethan', 'Riley', 'Carter'];
 const BIOS = [

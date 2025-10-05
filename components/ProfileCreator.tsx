@@ -2,12 +2,14 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { UserProfile, Kink, ProfilePrompt, AudioPrompt } from '../types';
-import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants';
-import PersonaCustomizer from './PersonaCustomizer';
-import { ChevronLeftIcon } from './Icons';
-import { fileToDataUri, processImage } from '../helpers/imageProcessing';
+import { UserProfile, Kink, ProfilePrompt, AudioPrompt } from '../types.ts';
+import { DEFAULT_PERSONA_BIO, LOOKING_FOR_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '../constants.ts';
+import PersonaCustomizer from './PersonaCustomizer.tsx';
+import { ChevronLeftIcon } from './Icons.tsx';
+import { fileToDataUri, processImage } from '../helpers/imageProcessing.ts';
 
 interface ProfileCreatorProps {
   onProfileCreated: (profile: UserProfile) => void;

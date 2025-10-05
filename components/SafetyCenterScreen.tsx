@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
-import { BackIcon } from './Icons';
-import { getSafetyArticleContent } from '../services/geminiService';
+import { BackIcon } from './Icons.tsx';
+import { getSafetyArticleContent } from '../services/geminiService.ts';
 
 interface SafetyCenterScreenProps {
     onBack: () => void;

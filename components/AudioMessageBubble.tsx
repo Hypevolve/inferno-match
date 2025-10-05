@@ -1,7 +1,8 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage } from '../types';
-import { PlayIcon, PauseIcon } from './Icons';
+import { ChatMessage } from '../types.ts';
+import { PlayIcon, PauseIcon } from './Icons.tsx';
 
 interface AudioMessageBubbleProps {
     message: ChatMessage;

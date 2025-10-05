@@ -1,7 +1,8 @@
 
+
 import React from 'react';
-import { BackIcon, DiamondIcon, CheckIcon } from './Icons';
-import { Screen } from '../types';
+import { BackIcon, DiamondIcon, CheckIcon } from './Icons.tsx';
+import { Screen } from '../types.ts';
 
 interface ProductPlanScreenProps {
     onBack: () => void;

@@ -1,7 +1,8 @@
 
+
 import React from 'react';
-import { Screen } from '../types';
-import { FlameIcon, MatchesIcon, ProfileIcon, DiamondIcon, SparklesIcon } from './Icons';
+import { Screen } from '../types.ts';
+import { FlameIcon, MatchesIcon, ProfileIcon, DiamondIcon, SparklesIcon } from './Icons.tsx';
 
 interface BottomNavProps {
     activeScreen: Screen;
