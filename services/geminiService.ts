@@ -1,5 +1,6 @@
 
-import { GoogleGenAI, GenerateContentResponse, Content, Type, Part } from "@google/genai";
+
+import { GoogleGenAI, Content, Part } from "@google/genai";
 import { UserProfile, ChatMessage } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
@@ -28,12 +29,11 @@ const getFantasySystemInstruction = (scenario: string, userCharacter: string, ai
     return `You are the narrator and a character in an erotic roleplay session on the Inferno dating app.
 The scenario is: "${scenario}".
 You will be playing the role of ${aiCharacter}. The user is playing the role of ${userCharacter}.
-Your role is to advance the story, describe the environment, and respond as your character. Be descriptive, engaging, and seductive.
-Keep your responses focused on the scene and immersive. Do not break character.`;
+Your role is to advance the story, describe the environment, and respond as your character. Be descriptive, sensual, and engaging. Keep the story moving forward based on the user's responses.`;
 };
 
-// Fix: Add helper function to convert chat messages to Gemini's Content format.
-const messageToContent = (messages: ChatMessage[]): Content[] => {
+// FIX: Added helper function to convert chat messages to Gemini's content format.
+const chatMessagesToContent = (messages: ChatMessage[]): Content[] => {
     return messages.map(msg => {
         const parts: Part[] = [];
         if (msg.text) {
@@ -44,118 +44,122 @@ const messageToContent = (messages: ChatMessage[]): Content[] => {
             if (imagePart) parts.push(imagePart);
         }
         return {
-            role: msg.sender === 'user' ? 'user' : 'model',
-            parts,
+            role: msg.sender === 'ai' ? 'model' : 'user',
+            parts: parts,
         };
-    });
+    }).filter(c => c.parts.length > 0);
 };
 
-// Fix: Export getGeminiInitialMessage function.
+// FIX: Implemented and exported getGeminiInitialMessage
 export const getGeminiInitialMessage = async (matchProfile: UserProfile): Promise<string> => {
     try {
         const systemInstruction = generatePersonaSystemInstruction(matchProfile);
         const response = await ai.models.generateContent({
-            model,
-            contents: [{ role: 'user', parts: [{ text: "You're starting the conversation. Send a captivating opening message." }] }],
+            model: model,
+            contents: "Send your very first opening message to the user. Be flirty and interesting. Don't be too forward, just enough to get them curious.",
             config: {
-                systemInstruction,
-            },
+                systemInstruction: systemInstruction,
+            }
         });
         return response.text.trim();
     } catch (error) {
         console.error("Error getting initial message from Gemini:", error);
-        return "Hey there ;)";
+        return "Hey there ;)"; // Fallback message
     }
 };
 
-// Fix: Export getGeminiChatResponse function.
+// FIX: Implemented and exported getGeminiChatResponse
 export const getGeminiChatResponse = async (messages: ChatMessage[], matchProfile: UserProfile): Promise<string> => {
     try {
         const systemInstruction = generatePersonaSystemInstruction(matchProfile);
-        const contents = messageToContent(messages);
-        
+        const contents = chatMessagesToContent(messages);
+
+        if (contents.length === 0) {
+            return "I'm not sure what to say to that...";
+        }
+
         const response = await ai.models.generateContent({
-            model,
-            contents,
+            model: model,
+            contents: contents,
             config: {
-                systemInstruction,
+                systemInstruction: systemInstruction,
             }
         });
-
         return response.text.trim();
     } catch (error) {
         console.error("Error getting chat response from Gemini:", error);
-        return "I'm not sure what to say to that... try something else?";
+        return "I'm not sure what to say to that... try something else?"; // Fallback message
     }
 };
 
-// Fix: Export getGeminiIcebreaker function.
+// FIX: Implemented and exported getGeminiIcebreaker
 export const getGeminiIcebreaker = async (userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
     try {
-        const prompt = `You are on a dating app called Inferno. You are user "${userProfile.name}".
-        You are looking at the profile of "${matchProfile.name}".
-        Their bio is: "${matchProfile.bio}".
-        Their kinks are: ${matchProfile.kinks.map(k => k.name).join(', ')}.
-        Your task is to generate one single, short, flirty, and direct icebreaker message to send to ${matchProfile.name} based on their profile. The message should be something that can be directly sent. Do not add quotation marks around it.`;
-        
+        const prompt = `Based on our profiles, suggest a flirty and interesting icebreaker I (the user) can send to you.
+        My profile name: ${userProfile.name}. My bio: "${userProfile.bio}". My interests: ${userProfile.kinks.map(k => k.name).join(', ')}.
+        Your profile (who I'm talking to) name: ${matchProfile.name}. Your bio: "${matchProfile.bio}". Your interests: ${matchProfile.kinks.map(k => k.name).join(', ')}.
+        Just return the message text, nothing else before or after. Don't wrap it in quotes.`;
+
         const response = await ai.models.generateContent({
-            model,
+            model: model,
             contents: prompt,
-        });
-
-        return response.text.trim().replace(/^"|"$/g, ''); // remove quotes if any
-    } catch (error) {
-        console.error("Error getting icebreaker from Gemini:", error);
-        return "Are you a magician? Because whenever I look at you, everyone else disappears.";
-    }
-};
-
-// Fix: Export getGeminiFantasyResponse function.
-export const getGeminiFantasyResponse = async (
-    messages: ChatMessage[],
-    scenario: string,
-    userProfile: UserProfile,
-    matchProfile: UserProfile
-): Promise<string> => {
-    try {
-        const systemInstruction = getFantasySystemInstruction(scenario, userProfile.name, matchProfile.name);
-        // Filter out system messages for fantasy history
-        const history = messages.filter(m => m.type !== 'system');
-        const contents = messageToContent(history);
-        
-        const response = await ai.models.generateContent({
-            model,
-            contents,
             config: {
-                systemInstruction,
+                systemInstruction: "You are a helpful dating assistant for an app called Inferno. You help users craft witty and engaging messages."
             }
         });
 
-        return response.text.trim();
+        let text = response.text.trim();
+        if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+            text = text.substring(1, text.length - 1);
+        }
+        return text;
     } catch (error) {
-        console.error("Error getting fantasy response from Gemini:", error);
-        return "My imagination seems to be running wild... let's try that again.";
+        console.error("Error getting icebreaker from Gemini:", error);
+        return "What's the most adventurous thing you've ever done?"; // Fallback
     }
 };
 
-// Fix: Export getSafetyArticleContent function.
+// FIX: Implemented and exported getGeminiFantasyResponse
+export const getGeminiFantasyResponse = async (messages: ChatMessage[], scenario: string, userProfile: UserProfile, matchProfile: UserProfile): Promise<string> => {
+    try {
+        const systemInstruction = getFantasySystemInstruction(scenario, userProfile.name, matchProfile.name);
+        const history = chatMessagesToContent(messages.filter(m => m.type !== 'system' && m.type !== 'game'));
+
+        if (history.length === 0) {
+            // This is the first turn after starting fantasy mode. The AI should start the story.
+            history.push({ role: 'user', parts: [{ text: `(The scene begins: ${scenario})` }] });
+        }
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: history,
+            config: {
+                systemInstruction: systemInstruction,
+            }
+        });
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error getting fantasy response from Gemini:", error);
+        return "I seem to have lost my train of thought... Where were we?"; // Fallback
+    }
+};
+
+// FIX: Implemented and exported getSafetyArticleContent
 export const getSafetyArticleContent = async (title: string): Promise<string> => {
     try {
-        const prompt = `You are a safety expert for an NSFW-friendly dating app called Inferno.
-        Write a concise, helpful, and easy-to-understand article on the topic: "${title}".
-        The tone should be informative and reassuring, not preachy. Use markdown for formatting, like using bold for headings or key terms.`;
-        
+        const systemInstruction = "You are a helpful assistant for Inferno, an NSFW-friendly dating app. Your role is to provide clear, helpful, and non-judgmental information about BDSM and kink safety. Your tone should be informative, reassuring, and sex-positive. Use clear headings and bullet points (using simple text and newlines) to make the content easy to read.";
+        const prompt = `Write a short article for the app's Safety Center on the topic: "${title}". Cover the key points in a concise and easy-to-understand way. Structure it with a main title, and then paragraphs or bulleted lists.`;
+
         const response = await ai.models.generateContent({
-            model,
+            model: model,
             contents: prompt,
+            config: {
+                systemInstruction: systemInstruction,
+            }
         });
-        // A simple markdown to HTML conversion
-        let text = response.text.trim();
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // bold
-        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>'); // italics
-        return text;
+        return response.text.trim();
     } catch (error) {
-        console.error("Error getting safety article from Gemini:", error);
-        return "We're having trouble loading this article right now. Please check back later.";
+        console.error(`Error getting safety article for "${title}":`, error);
+        return "We couldn't load this article right now. Please check your connection and try again."; // Fallback
     }
 };

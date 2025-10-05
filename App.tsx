@@ -1,7 +1,11 @@
 
+
+
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { UserProfile, Screen, FilterSettings } from './types';
 import AgeGate from './components/AgeGate';
+import OnboardingWelcomeScreen from './components/OnboardingWelcomeScreen';
 import ProfileCreator from './components/ProfileCreator';
 import SwipeScreen from './components/SwipeScreen';
 import ChatScreen from './components/ChatScreen';
@@ -10,6 +14,7 @@ import UserProfileScreen from './components/UserProfileScreen';
 import ItsAMatchScreen from './components/ItsAMatchScreen';
 import VideoCallScreen from './components/VideoCallScreen';
 import BottomNav from './components/BottomNav';
+import SideNav from './components/SideNav';
 import LikesYouScreen from './components/LikesYouScreen';
 import FilterScreen from './components/FilterScreen';
 import ProductPlanScreen from './components/ProductPlanScreen';
@@ -18,6 +23,7 @@ import SafetyCenterScreen from './components/SafetyCenterScreen';
 import SpotlightScreen from './components/SpotlightScreen';
 import { generateMatches } from './services/matchService';
 import { haversineDistance } from './helpers/geolocation';
+import { MatchesIcon } from './components/Icons';
 
 const App: React.FC = () => {
   const [isAgeVerified, setIsAgeVerified] = useState<boolean>(false);
@@ -40,6 +46,14 @@ const App: React.FC = () => {
   const [lastPassedProfile, setLastPassedProfile] = useState<UserProfile | null>(null);
   const [isBoostActive, setIsBoostActive] = useState<boolean>(false);
   const [boostEndTime, setBoostEndTime] = useState<number | null>(null);
+
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [filterSettings, setFilterSettings] = useState<FilterSettings>({
     ageRange: { min: 18, max: 99 },
@@ -127,7 +141,6 @@ const App: React.FC = () => {
             setLikers(prev => [newLiker, ...prev]);
             setNewLikesCount(prev => prev + 1);
         }
-        // Simulate vault requests
         if(Math.random() < 0.15) {
           const newRequester = generateMatches(1)[0];
           setVaultRequests(prev => [newRequester, ...prev]);
@@ -138,7 +151,11 @@ const App: React.FC = () => {
 
   const handleAgeVerified = () => {
     setIsAgeVerified(true);
-    setCurrentScreen(Screen.PROFILE_CREATOR);
+    setCurrentScreen(Screen.ONBOARDING_WELCOME);
+  };
+  
+  const handleStartOnboarding = () => {
+      setCurrentScreen(Screen.PROFILE_CREATOR);
   };
 
   const handleProfileCreated = (profile: UserProfile) => {
@@ -204,22 +221,15 @@ const App: React.FC = () => {
 
   const handleRequestVaultAccess = (profileId: string) => {
     if (!userProfile) return;
-    // In a real app, this would be a network request. Here, we just log it.
     console.log(`User ${userProfile.id} requested vault access for ${profileId}`);
     alert(`Vault access requested!`);
   };
 
   const handleGrantVaultAccess = (requesterId: string) => {
     if (!userProfile) return;
-    // Add our user's ID to the requester's 'vaultAccessGrantedTo' list
-    // This is a simulation. In a real app, you'd update a central DB.
-    // For this demo, we'll update our local copies of the profiles.
     const updateUserInQueues = (profile: UserProfile) => {
       if (profile.id === requesterId) {
-        return {
-          ...profile,
-          vaultAccessGrantedTo: [...profile.vaultAccessGrantedTo, userProfile.id]
-        };
+        return { ...profile, vaultAccessGrantedTo: [...profile.vaultAccessGrantedTo, userProfile.id] };
       }
       return profile;
     };
@@ -230,20 +240,60 @@ const App: React.FC = () => {
     setVaultRequests(prev => prev.filter(p => p.id !== requesterId));
   };
 
+  const handleLogout = () => {
+    setUserProfile(null);
+    setMatches([]);
+    setLikers([]);
+    setMatchQueue([]);
+    setCurrentScreen(Screen.ONBOARDING_WELCOME);
+  };
+  
+  const handleAddMedia = (album: 'public' | 'private', dataUri: string) => {
+      if (!userProfile) return;
+      if (album === 'public') {
+          setUserProfile(prev => prev ? ({ ...prev, publicAlbum: [...prev.publicAlbum, dataUri] }) : null);
+      } else {
+          setUserProfile(prev => prev ? ({ ...prev, privateVault: [...prev.privateVault, dataUri] }) : null);
+      }
+  };
+
+  const handleRemoveMedia = (album: 'public' | 'private', urlToRemove: string) => {
+      if (!userProfile) return;
+      if (album === 'public') {
+          if (userProfile.imageUrl === urlToRemove) {
+              alert("You can't remove your main profile picture. You can change it by editing your profile.");
+              return;
+          }
+          setUserProfile(prev => prev ? ({ ...prev, publicAlbum: prev.publicAlbum.filter(url => url !== urlToRemove) }) : null);
+      } else {
+           setUserProfile(prev => prev ? ({ ...prev, privateVault: prev.privateVault.filter(url => url !== urlToRemove) }) : null);
+      }
+  };
+
 
   const handleNavigate = (screen: Screen) => {
     if (screen === Screen.LIKES_YOU) setNewLikesCount(0);
+    
+    if (isDesktop && screen !== Screen.MATCHES && screen !== Screen.CHAT) {
+        setActiveChatMatch(null);
+    }
     setCurrentScreen(screen);
   };
 
   const handleStartChat = (match: UserProfile) => {
     setActiveChatMatch(match);
-    setCurrentScreen(Screen.CHAT);
+    if (!isDesktop) {
+      setCurrentScreen(Screen.CHAT);
+    } else {
+      setCurrentScreen(Screen.MATCHES);
+    }
   };
   
   const handleEndChat = () => {
       setActiveChatMatch(null);
-      setCurrentScreen(Screen.MATCHES);
+      if(!isDesktop) {
+        setCurrentScreen(Screen.MATCHES);
+      }
   }
   
   const handleStartVideoCall = () => {
@@ -272,12 +322,20 @@ const App: React.FC = () => {
   };
   
   const renderScreen = () => {
-    if (!isAgeVerified) return <AgeGate onVerified={handleAgeVerified} />;
+    switch (currentScreen) {
+      case Screen.ONBOARDING_WELCOME:
+      case Screen.LOGGED_OUT:
+        return <OnboardingWelcomeScreen onStart={handleStartOnboarding} />;
+      case Screen.PROFILE_CREATOR: 
+        return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
+    }
+    
+    if (!userProfile) {
+      return <OnboardingWelcomeScreen onStart={handleStartOnboarding} />;
+    }
     
     switch (currentScreen) {
-      case Screen.PROFILE_CREATOR: return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
-      case Screen.SWIPE: return userProfile && <SwipeScreen 
-            userProfile={userProfile}
+      case Screen.SWIPE: return <SwipeScreen 
             currentProfile={filteredMatchQueue[0]}
             isLoading={isQueueLoading && filteredMatchQueue.length === 0}
             onLike={handleLike} onPass={handlePass} onSuperLike={handleSuperLike} onRewind={handleRewind}
@@ -286,16 +344,17 @@ const App: React.FC = () => {
             onOpenFilters={() => setCurrentScreen(Screen.FILTER)} areFiltersActive={areFiltersActive}
             onRequestVaultAccess={handleRequestVaultAccess}
         />;
-      case Screen.MATCHES: return <MatchesScreen matches={matches} onChat={handleStartChat} />;
-      case Screen.PROFILE: return userProfile && <UserProfileScreen 
+      case Screen.MATCHES: return <MatchesScreen matches={matches} onChat={handleStartChat} activeChatId={activeChatMatch?.id} />;
+      case Screen.PROFILE: return <UserProfileScreen 
             userProfile={userProfile} onEditProfile={handleEditProfile} onVerifyProfile={handleStartVerification}
             onOpenSafetyCenter={() => setCurrentScreen(Screen.SAFETY_CENTER)} isIncognito={isIncognito}
             onToggleIncognito={() => setIsIncognito(p => !p)} onGoPremium={() => setCurrentScreen(Screen.PRODUCT_PLAN)}
+            onLogout={handleLogout} onAddMedia={handleAddMedia} onRemoveMedia={handleRemoveMedia}
         />;
-      case Screen.CHAT: return userProfile && activeChatMatch && <ChatScreen 
-            userProfile={userProfile} matchProfile={activeChatMatch} onEndChat={handleEndChat} onStartVideoCall={handleStartVideoCall}
+      case Screen.CHAT: return activeChatMatch && <ChatScreen 
+            userProfile={userProfile} matchProfile={activeChatMatch} onEndChat={handleEndChat} onStartVideoCall={handleStartVideoCall} isDesktop={isDesktop}
         />;
-      case Screen.VIDEO_CALL: return userProfile && activeVideoCallMatch && <VideoCallScreen
+      case Screen.VIDEO_CALL: return activeVideoCallMatch && <VideoCallScreen
             userProfile={userProfile} matchProfile={activeVideoCallMatch} onEndCall={handleEndVideoCall}
         />;
       case Screen.LIKES_YOU: return <LikesYouScreen 
@@ -306,22 +365,63 @@ const App: React.FC = () => {
       case Screen.PRODUCT_PLAN: return <ProductPlanScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
       case Screen.VERIFICATION: return <VerificationScreen onComplete={handleVerificationComplete} onBack={() => setCurrentScreen(Screen.PROFILE)} />;
       case Screen.SAFETY_CENTER: return <SafetyCenterScreen onBack={() => setCurrentScreen(Screen.PROFILE)} />;
-      case Screen.SPOTLIGHT: return userProfile && <SpotlightScreen 
+      case Screen.SPOTLIGHT: return <SpotlightScreen 
             profiles={spotlightQueue} onSuperLike={handleSuperLike}
             onPass={handlePass} onRequestVaultAccess={handleRequestVaultAccess}
         />;
-      default: return <ProfileCreator onProfileCreated={handleProfileCreated} profileToEdit={userProfile} />;
+      default: return <SwipeScreen 
+            currentProfile={filteredMatchQueue[0]}
+            isLoading={isQueueLoading && filteredMatchQueue.length === 0}
+            onLike={handleLike} onPass={handlePass} onSuperLike={handleSuperLike} onRewind={handleRewind}
+            canRewind={!!lastPassedProfile && !lastPassedProfile.isSpotlight}
+            onBoost={handleBoost} isBoostActive={isBoostActive} boostEndTime={boostEndTime}
+            onOpenFilters={() => setCurrentScreen(Screen.FILTER)} areFiltersActive={areFiltersActive}
+            onRequestVaultAccess={handleRequestVaultAccess}
+        />;
     }
   };
   
-  const showNav = userProfile && [Screen.SWIPE, Screen.MATCHES, Screen.PROFILE, Screen.LIKES_YOU, Screen.SPOTLIGHT].includes(currentScreen);
+  const showNav = userProfile && [Screen.SWIPE, Screen.MATCHES, Screen.PROFILE, Screen.LIKES_YOU, Screen.SPOTLIGHT, Screen.CHAT].includes(currentScreen);
+  const isChatView = isDesktop && (currentScreen === Screen.MATCHES || (currentScreen === Screen.CHAT && activeChatMatch));
+
+  if (!isAgeVerified) {
+    return <AgeGate onVerified={handleAgeVerified} />;
+  }
 
   return (
-    <div className="h-[100dvh] w-screen max-w-md mx-auto flex flex-col bg-brand-bg shadow-2xl overflow-hidden">
-      <div className="flex-grow flex flex-col min-h-0">
-        {renderScreen()}
-      </div>
-      {showNav && <BottomNav activeScreen={currentScreen} onNavigate={handleNavigate} newLikesCount={newLikesCount} />}
+    <div className="h-[100dvh] w-screen flex flex-col md:flex-row bg-brand-bg overflow-hidden text-brand-text-light">
+      {showNav && <SideNav activeScreen={currentScreen} onNavigate={handleNavigate} newLikesCount={newLikesCount} />}
+
+      {isChatView ? (
+        <>
+            <div className="w-full md:w-1/3 md:max-w-sm border-r border-brand-surface-light flex flex-col shrink-0">
+                {userProfile && <MatchesScreen matches={matches} onChat={handleStartChat} activeChatId={activeChatMatch?.id} />}
+            </div>
+            <main className="hidden md:flex flex-grow flex-col">
+                {activeChatMatch && userProfile ? (
+                    <ChatScreen userProfile={userProfile} matchProfile={activeChatMatch} onEndChat={handleEndChat} onStartVideoCall={handleStartVideoCall} isDesktop={isDesktop} />
+                ) : (
+                    <div className="flex w-full h-full items-center justify-center bg-brand-bg">
+                        <div className="text-center text-brand-text-dark">
+                            <MatchesIcon className="h-16 w-16 mx-auto mb-4"/>
+                            <h2 className="text-xl font-bold text-white">Select a match</h2>
+                            <p>Choose a conversation to see your messages.</p>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </>
+      ) : (
+        <main className={`flex-grow flex flex-col min-h-0 ${currentScreen !== Screen.SWIPE ? 'md:items-center md:justify-center' : ''}`}>
+            <div className={`w-full h-full flex flex-col bg-brand-bg ${currentScreen !== Screen.SWIPE ? 'shadow-2xl overflow-hidden md:max-w-md md:h-[95vh] md:max-h-[900px] md:rounded-2xl' : ''}`}>
+              <div className="flex-grow flex flex-col min-h-0">
+                {renderScreen()}
+              </div>
+              {![Screen.ONBOARDING_WELCOME, Screen.PROFILE_CREATOR].includes(currentScreen) && showNav && <BottomNav activeScreen={currentScreen} onNavigate={handleNavigate} newLikesCount={newLikesCount} />}
+            </div>
+        </main>
+      )}
+
       {pendingMatch && userProfile && (
         <ItsAMatchScreen 
             userProfile={userProfile} matchProfile={pendingMatch} isSuperLike={lastMatchWasSuperLike}

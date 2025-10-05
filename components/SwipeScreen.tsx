@@ -1,11 +1,11 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import ProfileCard from './ProfileCard';
 import { RewindIcon, XIcon, StarIcon, HeartIcon, BoostIcon, FlameIcon, FilterIcon } from './Icons';
 
 interface SwipeScreenProps {
-  userProfile: UserProfile;
   currentProfile: UserProfile;
   isLoading: boolean;
   onLike: (profile: UserProfile) => void;
@@ -18,7 +18,6 @@ interface SwipeScreenProps {
   boostEndTime: number | null;
   onOpenFilters: () => void;
   areFiltersActive: boolean;
-  // Fix: Add missing prop to interface.
   onRequestVaultAccess: (profileId: string) => void;
 }
 
@@ -75,7 +74,7 @@ const ProfileCardSkeleton: React.FC = () => (
 );
 
 const SwipeScreen: React.FC<SwipeScreenProps> = ({ 
-    userProfile, currentProfile, isLoading, onLike, onPass, onSuperLike, 
+    currentProfile, isLoading, onLike, onPass, onSuperLike, 
     onRewind, canRewind, onBoost, isBoostActive, boostEndTime,
     onOpenFilters, areFiltersActive, onRequestVaultAccess
 }) => {
@@ -93,9 +92,36 @@ const SwipeScreen: React.FC<SwipeScreenProps> = ({
         }, 400);
     };
 
+    const renderCardContent = () => {
+        if (isLoading) {
+            return <div className="w-full h-full"><ProfileCardSkeleton /></div>;
+        }
+        if (!currentProfile) {
+            return (
+                <div className="w-full h-full">
+                    <div className="relative w-full h-full rounded-2xl border-2 border-dashed border-brand-surface-light flex flex-col items-center justify-center p-4 text-center">
+                        <h2 className="text-xl font-bold text-brand-text-dark">No one new around you</h2>
+                        <p className="text-sm text-brand-text-dark mt-2">Try adjusting your filters or check back later!</p>
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div className={`transition-all duration-300 ease-in-out w-full h-full absolute
+                ${action === 'pass' ? '-translate-x-full rotate-[-15deg] opacity-0' : ''}
+                ${action === 'like' ? 'translate-x-full rotate-[15deg] opacity-0' : ''}
+                ${action === 'superlike' ? '-translate-y-full opacity-0 scale-75' : ''}`}>
+               {action === 'like' && <ActionStamp type="like" />}
+               {action === 'pass' && <ActionStamp type="nope" />}
+               {action === 'superlike' && <ActionStamp type="superlike" />}
+               <ProfileCard profile={currentProfile} />
+            </div>
+        );
+    };
+
     return (
         <div className="flex-grow flex flex-col w-full h-full bg-brand-bg bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-brand-surface/80 to-brand-bg overflow-hidden">
-             <header className="p-4 flex justify-between items-center text-white h-16 shrink-0">
+             <header className="p-4 flex justify-between items-center text-white h-16 shrink-0 z-20">
                 <div className="w-1/3"></div>
                 <div className="w-1/3 flex justify-center">
                     {isBoostActive ? (
@@ -111,47 +137,56 @@ const SwipeScreen: React.FC<SwipeScreenProps> = ({
                     </button>
                 </div>
             </header>
-             <div className="flex-grow flex items-center justify-center p-4 relative min-h-0">
-                {isLoading ? (
-                     <div className="w-full max-w-sm aspect-[3/5]"><ProfileCardSkeleton /></div>
-                ) : !currentProfile ? (
-                     <div className="w-full max-w-sm">
-                        <div className="relative aspect-[3/5] rounded-2xl border-2 border-dashed border-brand-surface-light flex flex-col items-center justify-center p-4 text-center">
-                            <h2 className="text-xl font-bold text-brand-text-dark">No one new around you</h2>
-                            <p className="text-sm text-brand-text-dark mt-2">Try adjusting your filters or check back later!</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative w-full max-w-sm aspect-[3/5]">
-                        <div className={`transition-all duration-300 ease-in-out w-full h-full absolute
-                            ${action === 'pass' ? '-translate-x-full rotate-[-15deg] opacity-0' : ''}
-                            ${action === 'like' ? 'translate-x-full rotate-[15deg] opacity-0' : ''}
-                            ${action === 'superlike' ? '-translate-y-full opacity-0 scale-75' : ''}`}>
-                           {action === 'like' && <ActionStamp type="like" />}
-                           {action === 'pass' && <ActionStamp type="nope" />}
-                           {action === 'superlike' && <ActionStamp type="superlike" />}
-                           <ProfileCard profile={currentProfile} />
-                        </div>
-                    </div>
-                )}
-            </div>
 
-            <div className="flex justify-center items-center gap-4 p-4 z-10 shrink-0">
-                <button onClick={onRewind} disabled={!canRewind} className="p-4 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <RewindIcon className="h-7 w-7" />
-                </button>
-                <button onClick={() => handleAction(currentProfile, 'pass')} className="p-6 bg-brand-surface rounded-full text-brand-text-light shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
-                    <XIcon className="h-9 w-9" />
-                </button>
-                 <button onClick={() => handleAction(currentProfile, 'superlike')} className="p-5 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
-                    <StarIcon className="h-8 w-8" />
-                </button>
-                <button onClick={() => handleAction(currentProfile, 'like')} className="p-6 bg-brand-surface rounded-full text-brand-primary shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
-                    <HeartIcon className="h-9 w-9" />
-                </button>
-                <button onClick={onBoost} disabled={isBoostActive} className="p-4 bg-brand-surface rounded-full text-brand-secondary shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <BoostIcon className="h-7 w-7" />
-                </button>
+            {/* MOBILE VIEW */}
+             <div className="md:hidden flex-grow flex flex-col min-h-0">
+                <div className="flex-grow flex items-center justify-center p-4 relative min-h-0">
+                    <div className="relative w-full max-w-sm aspect-[3/5]">
+                        {renderCardContent()}
+                    </div>
+                </div>
+
+                <div className="flex justify-center items-center gap-4 p-4 z-10 shrink-0">
+                    <button onClick={onRewind} disabled={!canRewind} className="p-4 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <RewindIcon className="h-7 w-7" />
+                    </button>
+                    <button onClick={() => handleAction(currentProfile, 'pass')} className="p-6 bg-brand-surface rounded-full text-brand-text-light shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <XIcon className="h-9 w-9" />
+                    </button>
+                     <button onClick={() => handleAction(currentProfile, 'superlike')} className="p-5 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <StarIcon className="h-8 w-8" />
+                    </button>
+                    <button onClick={() => handleAction(currentProfile, 'like')} className="p-6 bg-brand-surface rounded-full text-brand-primary shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <HeartIcon className="h-9 w-9" />
+                    </button>
+                    <button onClick={onBoost} disabled={isBoostActive} className="p-4 bg-brand-surface rounded-full text-brand-secondary shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <BoostIcon className="h-7 w-7" />
+                    </button>
+                </div>
+             </div>
+
+            {/* DESKTOP VIEW */}
+            <div className="hidden md:flex flex-col flex-grow items-center justify-center p-8">
+                <div className="relative w-full max-w-sm aspect-[3/5] mb-6">
+                    {renderCardContent()}
+                </div>
+                <div className="flex justify-center items-center gap-4">
+                    <button onClick={onRewind} disabled={!canRewind} className="p-4 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <RewindIcon className="h-7 w-7" />
+                    </button>
+                    <button onClick={() => handleAction(currentProfile, 'pass')} className="p-6 bg-brand-surface rounded-full text-brand-text-light shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <XIcon className="h-9 w-9" />
+                    </button>
+                    <button onClick={() => handleAction(currentProfile, 'superlike')} className="p-5 bg-brand-surface rounded-full text-brand-accent shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <StarIcon className="h-8 w-8" />
+                    </button>
+                    <button onClick={() => handleAction(currentProfile, 'like')} className="p-6 bg-brand-surface rounded-full text-brand-primary shadow-lg transform transition-all hover:scale-110 active:scale-95 hover:bg-brand-surface-light">
+                        <HeartIcon className="h-9 w-9" />
+                    </button>
+                    <button onClick={onBoost} disabled={isBoostActive} className="p-4 bg-brand-surface rounded-full text-brand-secondary shadow-lg transform transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <BoostIcon className="h-7 w-7" />
+                    </button>
+                </div>
             </div>
         </div>
     );

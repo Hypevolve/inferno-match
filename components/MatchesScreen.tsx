@@ -5,11 +5,12 @@ import { UserProfile } from '../types';
 interface MatchesScreenProps {
   matches: UserProfile[];
   onChat: (profile: UserProfile) => void;
+  activeChatId?: string;
 }
 
 type SortByType = 'default' | 'active';
 
-const MatchesScreen: React.FC<MatchesScreenProps> = ({ matches, onChat }) => {
+const MatchesScreen: React.FC<MatchesScreenProps> = ({ matches, onChat, activeChatId }) => {
   const [sortBy, setSortBy] = useState<SortByType>('default');
 
   const sortedMatches = useMemo(() => {
@@ -52,7 +53,7 @@ const MatchesScreen: React.FC<MatchesScreenProps> = ({ matches, onChat }) => {
         <main className="flex-grow p-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             {sortedMatches.map(match => (
-              <div key={match.id} onClick={() => onChat(match)} className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group shadow-lg transition-all duration-300 hover:ring-2 ring-inset ring-transparent hover:ring-brand-primary">
+              <div key={match.id} onClick={() => onChat(match)} className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group shadow-lg transition-all duration-300 ${match.id === activeChatId ? 'ring-2 ring-inset ring-brand-primary' : 'hover:ring-2 ring-inset ring-transparent hover:ring-brand-primary'}`}>
                 <img src={match.imageUrl} alt={match.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"/>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                 <div className="absolute bottom-0 left-0 p-2 text-white">

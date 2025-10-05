@@ -121,6 +121,20 @@ export const VideoOffIcon: React.FC<IconProps> = (props) => (
     </svg>
 );
 
+// FIX: Add PhotoIcon to fix import error.
+export const PhotoIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
+// FIX: Add LockIcon to fix import error.
+export const LockIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+);
+
 export const DiamondIcon: React.FC<IconProps> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" {...props} fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2L2 8.5l10 13.5L22 8.5 12 2zm0 2.311L19.462 9H4.538L12 4.311zM4.5 10.5h15l-7.5 10.125L4.5 10.5z"/>

@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'inferno-cache-v1';
 
 const APP_SHELL_URLS = [
@@ -12,6 +13,7 @@ const APP_SHELL_URLS = [
     '/services/geminiService.ts',
     '/services/matchService.ts',
     '/helpers/geolocation.ts',
+    '/helpers/imageProcessing.ts',
     '/components/AgeGate.tsx',
     '/components/ProfileCreator.tsx',
     '/components/PersonaCustomizer.tsx',

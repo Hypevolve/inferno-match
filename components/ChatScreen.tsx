@@ -11,9 +11,10 @@ interface ChatScreenProps {
   matchProfile: UserProfile;
   onEndChat: () => void;
   onStartVideoCall: () => void;
+  isDesktop?: boolean;
 }
 
-const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEndChat, onStartVideoCall }) => {
+const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEndChat, onStartVideoCall, isDesktop }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +104,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
         if (m.id === messageId) {
             const reactions = { ...(m.reactions || {}) };
             if (!reactions[emoji]) reactions[emoji] = [];
-            // Simple toggle for user reaction
             if (reactions[emoji].includes('user')) {
                 reactions[emoji] = reactions[emoji].filter(r => r !== 'user');
                 if(reactions[emoji].length === 0) delete reactions[emoji];
@@ -152,7 +152,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
                     handleSendAudio(audioUrl, audio.duration);
                 };
             };
-            // Stop all media tracks to turn off the mic indicator
             mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
         });
         mediaRecorderRef.current.stop();
@@ -165,8 +164,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
     <div className="flex flex-col h-full bg-brand-bg">
       <header className={`flex items-center justify-between p-4 shadow-md z-10 transition-colors ${isFantasyMode ? 'bg-purple-900/50' : 'bg-brand-surface'}`}>
         <div className="flex items-center">
-          <button onClick={onEndChat} className="p-2 text-brand-text-dark hover:text-white"><BackIcon className="h-6 w-6" /></button>
-          <img src={matchProfile.imageUrl} alt={matchProfile.name} className="h-10 w-10 rounded-full object-cover ml-4 border-2 border-brand-primary" />
+          {!isDesktop && <button onClick={onEndChat} className="p-2 text-brand-text-dark hover:text-white"><BackIcon className="h-6 w-6" /></button>}
+          <img src={matchProfile.imageUrl} alt={matchProfile.name} className={`h-10 w-10 rounded-full object-cover ml-4 border-2 border-brand-primary`} />
           <div className="ml-4">
             <h2 className="font-bold text-white">{matchProfile.name}</h2>
             <p className={`text-xs ${isFantasyMode ? 'text-purple-300' : 'text-green-400'}`}>{isFantasyMode ? 'Fantasy Mode' : 'Online'}</p>
@@ -175,6 +174,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ userProfile, matchProfile, onEn
          <div className="flex items-center gap-2">
             <button onClick={() => setShowFantasyModal(true)} className="p-2 text-brand-text-dark hover:text-purple-400 transition-colors" title="Start Fantasy Mode"><FlameIcon className="h-6 w-6" /></button>
             <button onClick={onStartVideoCall} className="p-2 text-brand-text-dark hover:text-brand-primary transition-colors"><VideoIcon className="h-6 w-6" /></button>
+            {isDesktop && <button onClick={onEndChat} className="p-2 text-brand-text-dark hover:text-white"><XIcon className="h-6 w-6" /></button>}
         </div>
       </header>
 

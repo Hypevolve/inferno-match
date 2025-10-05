@@ -19,7 +19,7 @@ export interface AudioPrompt {
 
 export interface UserProfile {
   id: string;
-  name: string;
+  name:string;
   age: number;
   bio: string;
   kinks: Kink[];
@@ -66,6 +66,7 @@ export interface ChatMessage {
 
 export enum Screen {
   AGE_GATE,
+  ONBOARDING_WELCOME,
   PROFILE_CREATOR,
   SWIPE,
   MATCHES,
@@ -78,6 +79,7 @@ export enum Screen {
   VERIFICATION,
   SAFETY_CENTER,
   SPOTLIGHT,
+  LOGGED_OUT,
 }
 
 export interface FilterSettings {
